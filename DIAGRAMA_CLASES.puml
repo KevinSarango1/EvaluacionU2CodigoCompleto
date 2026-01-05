@@ -1,0 +1,283 @@
+@startuml NutriApp_DiagramaClases
+
+!define ENTITY_COLOR #E6F3FF
+!define VALUE_COLOR #E6FFE6
+!define ENUM_COLOR #FFFFE6
+
+skinparam backgroundColor #FFFFFF
+skinparam classBackgroundColor #FAFAFA
+skinparam classBorderColor #333333
+skinparam arrowColor #333333
+
+' ======================== HISTORIAL ========================
+
+class Historial {
+  -id: Int
+  -fecha: Date
+  -totalCaloriasConsumidas: Float
+}
+
+' ======================== ALIMENTO ========================
+
+class Alimento {
+  -id: Int
+  -nombre: String
+  -categoria: CategoriaAlimento
+  -caloriasPor100g: Float
+  -grasasPor100g: Float
+  -carbohidratosPor100g: Float
+  -proteinasPor100g: Float
+}
+
+enum CategoriaAlimento {
+  PRODUCTO_LACTEO
+  PROTEINA
+  NUTRIENTE
+  PROCESADO
+}
+
+' ======================== PLAN NUTRICIONAL ========================
+
+class PlanNutricional {
+  -id: String
+  -patientId: String
+  -descripcion: String
+  -weekStartDate: String
+  -monday: String
+  -tuesday: String
+  -wednesday: String
+  -thursday: String
+  -friday: String
+  -saturday: String
+  -sunday: String
+  -observations: String
+  -createdAt: String
+  -updatedAt: String
+  +generarMenu(): String
+  +validarPlan(): Boolean
+}
+
+' ======================== CLASIFICACIÓN IMC ========================
+
+enum ClasificacionIMC {
+  BAJO_PESO
+  SALUDABLE
+  SOBREPESO
+  OBESIDAD
+}
+
+' ======================== PACIENTE ========================
+
+class Paciente {
+  -id: String
+  -nombre: String
+  -apellido: String
+  -email: String
+  -telefono: String
+  -sexo: String
+  -altura: Float
+  -peso: Float
+  -fechaNacimiento: String
+  -contrasena: String
+  -historiaClinica: HistoriaClinica
+  +calcularIMC(): Float
+  +getEdad(): Int
+}
+
+' ======================== HISTORIA CLÍNICA ========================
+
+class HistoriaClinica {
+  -patientId: String
+  -fecha: String
+  -antecedentesM: String
+  -antecedentesQ: String
+  -antecedentesF: String
+  -quejaActual: String
+  -enfermedadesPasadas: String
+  -habitosDieteticos: String
+  -actividadFisica: String
+  -consumoAlcohol: String
+  -consumoTabaco: String
+  -medicamentos: List<String>
+  -alergias: List<String>
+  -intolerancias: List<String>
+  -objetivoNutricional: String
+  -restricciones: String
+  -datosB: DatosBioquimicos
+  -datosA: DatosAntropometricos
+  -recall: Recall24Horas
+  -createdAt: String
+  -updatedAt: String
+}
+
+' ======================== DATOS BIOQUÍMICOS ========================
+
+class DatosBioquimicos {
+  -glucosa: Float
+  -hba1c: Float
+  -colesterolTotal: Float
+  -ldl: Float
+  -hdl: Float
+  -trigliceridos: Float
+  -ast: Float
+  -alt: Float
+  -creatinina: Float
+  -proteinas: Float
+  -albumina: Float
+  -hemoglobina: Float
+  -hematocrito: Float
+  -vitamina_B12: Float
+  -hierro: Float
+  -ferritina: Float
+  -zinc: Float
+  -calcio: Float
+  -magnesio: Float
+  -fosforo: Float
+  -fechaExamen: String
+  +interpretarResultados(): String
+}
+
+' ======================== DATOS ANTROPOMÉTRICOS ========================
+
+class DatosAntropometricos {
+  -peso: Float
+  -altura: Float
+  -imc: Float
+  -circunferenciaAbdomen: Float
+  -circunferencaCadera: Float
+  -razonCinturaAlturaRatio: Float
+  -circunferenciaBrazo: Float
+  -circunferenciaMuslo: Float
+  -plieguesTriceps: Float
+  -plieguesBiceps: Float
+  -plieguesSubescapular: Float
+  -plieguesSuprailiaco: Float
+  -porcentajeGrasaCorporal: Float
+  -masaMuscular: Float
+  -masaOsea: Float
+  -porcentajeAgua: Float
+  -fechaMedicion: String
+  +calcularIMC(): Float
+  +obtenerClasificacion(): ClasificacionIMC
+  +interpretarMedidas(): String
+}
+
+' ======================== RECALL 24 HORAS ========================
+
+class Recall24Horas {
+  -fecha: String
+  -desayuno: List<ItemComida>
+  -almuerzoMedia: List<ItemComida>
+  -almuerzo: List<ItemComida>
+  -merienda: List<ItemComida>
+  -cena: List<ItemComida>
+  -totalCalorias: Float
+  -totalProteinas: Float
+  -totalCarbohidratos: Float
+  -totalGrasas: Float
+  +calcularMacronutrientes(): Macronutrientes
+  +obtenerDistribucionCalorias(): DistribucionCalorias
+}
+
+class ItemComida {
+  -alimento: String
+  -cantidad: Float
+  -unidad: String
+  -calorias: Float
+  -proteinas: Float
+  -carbohidratos: Float
+  -grasas: Float
+}
+
+' ======================== USUARIO (AUTENTICACIÓN) ========================
+
+class Usuario {
+  -id: String
+  -email: String
+  -contrasena: String
+  -nombreCompleto: String
+  -rol: TipoUsuario
+  -fechaCreacion: String
+}
+
+enum TipoUsuario {
+  ADMIN
+  NUTRICIONISTA
+  PACIENTE
+}
+
+' ======================== RELACIONES ========================
+
+Paciente "1" --> "1" Historial: proporciona >
+Historial "1" --> "1..*" Alimento: registra >
+Alimento "1..*" --> "1" CategoriaAlimento: pertenece a >
+Alimento "1..*" --> "1" PlanNutricional: asociado a >
+Paciente "1" --> "1" ClasificacionIMC: clasificado como >
+Paciente "1" --> "1" PlanNutricional: designado >
+Paciente "1" --> "1" HistoriaClinica: tiene >
+HistoriaClinica "1" --> "1" DatosBioquimicos: contiene >
+HistoriaClinica "1" --> "1" DatosAntropometricos: contiene >
+HistoriaClinica "1" --> "1" Recall24Horas: contiene >
+Recall24Horas "1" --> "1..*" ItemComida: contiene >
+Usuario "1" --> "1" TipoUsuario: tiene rol >
+Paciente --|> Usuario: es tipo
+
+' ======================== NOTAS ========================
+
+note right of Historial
+  Registro de consumo diario
+  del paciente con totales
+  de calorías consumidas
+end note
+
+note right of Alimento
+  Base de datos de alimentos
+  con propiedades nutricionales
+  por cada 100 gramos
+end note
+
+note right of PlanNutricional
+  Plan nutricional semanal
+  diseñado por nutricionista
+  para el paciente
+end note
+
+note right of Paciente
+  Entidad principal que representa
+  al usuario paciente del sistema
+  con sus datos personales y médicos
+end note
+
+note right of HistoriaClinica
+  Registro completo de la evaluación
+  nutricional del paciente con
+  antecedentes, hábitos, medicamentos,
+  alergias y datos clínicos
+end note
+
+note right of DatosBioquimicos
+  Resultados de exámenes
+  de laboratorio del paciente
+  para seguimiento nutricional
+end note
+
+note right of DatosAntropometricos
+  Medidas físicas y composición
+  corporal del paciente
+  para evaluación nutricional
+end note
+
+note right of Recall24Horas
+  Registro detallado del consumo
+  de alimentos en 24 horas
+  para análisis nutricional
+end note
+
+note right of Usuario
+  Base de autenticación del sistema
+  con roles diferenciados para
+  nutricionistas, pacientes y admin
+end note
+
+@enduml
+

@@ -1,0 +1,9 @@
+package com.nutricion.repository;
+
+import com.nutricion.entity.Anthropometry;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface AnthropometryRepository extends JpaRepository<Anthropometry, Long> {
+}

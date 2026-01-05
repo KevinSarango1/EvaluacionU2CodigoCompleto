@@ -1,0 +1,175 @@
+@startuml NutriApp_DiagramaComponentes
+
+title NutriApp - Diagrama de Componentes del Sistema
+
+skinparam backgroundColor #FFFFFF
+skinparam component {
+    BackgroundColor #E6F3FF
+    BorderColor #333333
+}
+skinparam interface {
+    BackgroundColor #F0FFF0
+    BorderColor #333333
+}
+
+' ======================== FRONTEND - INTERFAZ ========================
+
+package "Frontend - Interfaz de Usuario" <<folder>> #E6F3FF {
+    
+    package "Autenticación" {
+        component [Login] as LOGIN
+        component [ConfirmDialog] as CONFIRM
+    }
+    
+    package "Gestión de Pacientes" {
+        component [PatientForm] as PFORM
+        component [PatientEdit] as PEDIT
+        component [PatientDetail] as PDETAIL
+        component [PatientDashboard] as PDASH
+    }
+    
+    package "Historia Clínica" {
+        component [ClinicalHistoryForm] as HFORM
+        component [BiometricsForm] as BFORM
+        component [AnthropometryForm] as AFORM
+    }
+    
+    package "Plan Nutricional" {
+        component [WeeklyMenuForm] as WFORM
+    }
+    
+    package "Administración" {
+        component [AdminPanel] as ADMIN
+    }
+    
+    package "Componentes Comunes" {
+        component [SuccessAlert] as SUCCESS
+        component [ValidationAlert] as VALIDATE
+    }
+}
+
+' ======================== SERVICIOS FRONTEND ========================
+
+package "Servicios Frontend" <<folder>> #F0FFF0 {
+    component [patientService] as PSERVICE
+    component [authService] as ASERVICE
+}
+
+' ======================== BACKEND - LÓGICA DE NEGOCIO ========================
+
+package "Backend - Servidor" <<folder>> #E6F3FF {
+    
+    package "Controladores" {
+        component [AuthController] as ACONTROLLER
+        component [PatientController] as PCONTROLLER
+    }
+    
+    package "Servicios" {
+        component [AuthService] as ASERVICEBACKEND
+        component [PatientService] as PSERVICEBACKEND
+    }
+    
+    package "Repositorios" {
+        component [UserRepository] as UREPO
+        component [PatientRepository] as PREPO
+    }
+    
+    package "Entidades" {
+        component [User] as USER_ENTITY
+        component [Patient] as PATIENT_ENTITY
+        component [ClinicalHistory] as HISTORY_ENTITY
+    }
+    
+    package "Seguridad" {
+        component [JwtTokenProvider] as JWT
+        component [SecurityConfig] as SECCONFIG
+    }
+}
+
+' ======================== BASE DE DATOS ========================
+
+package "Persistencia" <<folder>> #FFFFE6 {
+    component [PostgreSQL\n(Tablas)] as POSTGRES
+    component [H2 (Desarrollo)] as H2
+}
+
+' ======================== RELACIONES FRONTEND ========================
+
+LOGIN --> CONFIRM : usa
+PFORM --> CONFIRM : usa
+PEDIT --> CONFIRM : usa
+PDETAIL --> HFORM : contiene
+PDETAIL --> BFORM : contiene
+PDETAIL --> AFORM : contiene
+ADMIN --> PFORM : crea
+ADMIN --> PEDIT : edita
+
+HFORM --> SUCCESS : muestra
+HFORM --> VALIDATE : valida
+BFORM --> SUCCESS : muestra
+AFORM --> SUCCESS : muestra
+PFORM --> SUCCESS : muestra
+
+' ======================== RELACIONES FRONTEND-BACKEND ========================
+
+LOGIN --> ASERVICE : autentica
+PFORM --> PSERVICE : registra
+PEDIT --> PSERVICE : actualiza
+PDETAIL --> PSERVICE : obtiene datos
+PDASH --> PSERVICE : obtiene menú
+WFORM --> PSERVICE : asigna menú
+
+ASERVICE --> ACONTROLLER : HTTP/REST
+PSERVICE --> PCONTROLLER : HTTP/REST
+
+' ======================== RELACIONES BACKEND ========================
+
+ACONTROLLER --> ASERVICEBACKEND : delega
+PCONTROLLER --> PSERVICEBACKEND : delega
+
+ASERVICEBACKEND --> UREPO : accede
+PSERVICEBACKEND --> PREPO : accede
+PSERVICEBACKEND --> UREPO : valida
+
+UREPO --> USER_ENTITY : mapea
+PREPO --> PATIENT_ENTITY : mapea
+PREPO --> HISTORY_ENTITY : mapea
+
+ASERVICEBACKEND --> JWT : valida token
+ASERVICEBACKEND --> SECCONFIG : usa
+
+' ======================== RELACIONES BACKEND-BD ========================
+
+UREPO --> POSTGRES : SQL
+PREPO --> POSTGRES : SQL
+UREPO --> H2 : SQL (dev)
+PREPO --> H2 : SQL (dev)
+
+' ======================== NOTAS ========================
+
+note right of LOGIN
+  Punto de entrada
+  del sistema
+end note
+
+note right of PDETAIL
+  Centro de gestión
+  de información clínica
+end note
+
+note right of PSERVICEBACKEND
+  Lógica principal
+  del negocio
+end note
+
+note right of POSTGRES
+  Producción
+  Puerto: 5432
+end note
+
+note right of H2
+  Desarrollo local
+  Base en memoria
+end note
+
+@enduml

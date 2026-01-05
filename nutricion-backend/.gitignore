@@ -1,0 +1,38 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+.mvn/timing.properties
+.mvn/timing.properties.lock
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.iml
+*.ipr
+*.iws
+
+# Spring Boot
+spring-shell.log
+application-secret.properties
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+
+# IDE specific
+.classpath
+.project
+.settings/

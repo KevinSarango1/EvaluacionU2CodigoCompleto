@@ -18,6 +18,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
     phone: '',
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadNutritionists();
@@ -44,6 +45,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar campos requeridos
+    const errors: Record<string, string> = {};
+    
+    if (!formData.email.trim()) {
+      errors.email = 'El email es requerido';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Ingrese un email válido';
+    }
+    
+    if (!formData.password.trim()) {
+      errors.password = 'La contraseña es requerida';
+    } else if (formData.password.length < 6) {
+      errors.password = 'La contraseña debe tener al menos 6 caracteres';
+    }
+    
+    if (!formData.fullName.trim()) {
+      errors.fullName = 'El nombre completo es requerido';
+    }
+    
+    if (!formData.specialization.trim()) {
+      errors.specialization = 'La especialización es requerida';
+    }
+    
+    if (!formData.phone.trim()) {
+      errors.phone = 'El teléfono es requerido';
+    } else if (formData.phone.length < 10) {
+      errors.phone = 'Ingrese un teléfono válido (mínimo 10 dígitos)';
+    }
+    
+    // Si hay errores, mostrarlos y no enviar
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    
+    // Limpiar errores si la validación pasó
+    setValidationErrors({});
     
     if (editingId) {
       // Actualizar nutricionista
@@ -140,61 +179,106 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
             <h2 className="text-2xl font-bold mb-4">
               {editingId ? 'Editar Nutricionista' : 'Nuevo Nutricionista'}
             </h2>
+            
+            {/* Mostrar errores de validación */}
+            {Object.keys(validationErrors).length > 0 && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded">
+                <h3 className="text-red-800 font-bold mb-2">⚠️ Por favor corrige los siguientes errores:</h3>
+                <ul className="list-disc list-inside space-y-1 text-red-700">
+                  {Object.entries(validationErrors).map(([field, error]) => (
+                    <li key={field}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Nombre Completo</label>
+                  <label className="block text-sm font-semibold mb-2">Nombre Completo *</label>
                   <input
                     type="text"
                     name="fullName"
                     value={formData.fullName}
                     onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-600"
+                    className={`w-full px-4 py-2 border rounded focus:ring-2 ${
+                      validationErrors.fullName
+                        ? 'border-red-500 focus:ring-red-600'
+                        : 'focus:ring-blue-600'
+                    }`}
                   />
+                  {validationErrors.fullName && (
+                    <p className="text-red-600 text-sm mt-1">{validationErrors.fullName}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Email</label>
+                  <label className="block text-sm font-semibold mb-2">Email *</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-600"
+                    className={`w-full px-4 py-2 border rounded focus:ring-2 ${
+                      validationErrors.email
+                        ? 'border-red-500 focus:ring-red-600'
+                        : 'focus:ring-blue-600'
+                    }`}
                   />
+                  {validationErrors.email && (
+                    <p className="text-red-600 text-sm mt-1">{validationErrors.email}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Contraseña</label>
+                  <label className="block text-sm font-semibold mb-2">Contraseña *</label>
                   <input
                     type="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-600"
+                    className={`w-full px-4 py-2 border rounded focus:ring-2 ${
+                      validationErrors.password
+                        ? 'border-red-500 focus:ring-red-600'
+                        : 'focus:ring-blue-600'
+                    }`}
                   />
+                  {validationErrors.password && (
+                    <p className="text-red-600 text-sm mt-1">{validationErrors.password}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Especialización</label>
+                  <label className="block text-sm font-semibold mb-2">Especialización *</label>
                   <input
                     type="text"
                     name="specialization"
                     value={formData.specialization}
                     onChange={handleChange}
                     placeholder="Ej: Nutrición Deportiva"
-                    className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-600"
+                    className={`w-full px-4 py-2 border rounded focus:ring-2 ${
+                      validationErrors.specialization
+                        ? 'border-red-500 focus:ring-red-600'
+                        : 'focus:ring-blue-600'
+                    }`}
                   />
+                  {validationErrors.specialization && (
+                    <p className="text-red-600 text-sm mt-1">{validationErrors.specialization}</p>
+                  )}
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-semibold mb-2">Teléfono</label>
+                  <label className="block text-sm font-semibold mb-2">Teléfono *</label>
                   <input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-600"
+                    className={`w-full px-4 py-2 border rounded focus:ring-2 ${
+                      validationErrors.phone
+                        ? 'border-red-500 focus:ring-red-600'
+                        : 'focus:ring-blue-600'
+                    }`}
                   />
+                  {validationErrors.phone && (
+                    <p className="text-red-600 text-sm mt-1">{validationErrors.phone}</p>
+                  )}
                 </div>
               </div>
               <button

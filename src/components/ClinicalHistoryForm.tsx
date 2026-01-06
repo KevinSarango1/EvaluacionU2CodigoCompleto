@@ -9,27 +9,41 @@ interface ClinicalHistoryFormProps {
 }
 
 export const ClinicalHistoryForm: React.FC<ClinicalHistoryFormProps> = ({ onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    // Antecedentes
-    medicalHistory: '',
-    surgicalHistory: '',
-    familyHistory: '',
-    currentComplaints: '',
-    pastDiseases: '',
-    // Hábitos
-    dietaryHabits: '',
-    physicalActivity: '',
-    alcoholConsumption: '',
-    tobaccoUse: '',
-    // Medicamentos y alergias
-    medications: '',
-    allergies: '',
-    foodIntolerances: '',
-    // Objetivo
-    nutritionalObjective: '',
-    dietaryRestrictions: '',
-  });
+  const [formData, setFormData] = useState(
+    initialData ? {
+      date: initialData.date || new Date().toISOString().split('T')[0],
+      medicalHistory: initialData.medicalHistory || '',
+      surgicalHistory: initialData.surgicalHistory || '',
+      familyHistory: initialData.familyHistory || '',
+      currentComplaints: initialData.currentComplaints || '',
+      pastDiseases: initialData.pastDiseases || '',
+      dietaryHabits: initialData.dietaryHabits || '',
+      physicalActivity: initialData.physicalActivity || '',
+      alcoholConsumption: initialData.alcoholConsumption || '',
+      tobaccoUse: initialData.tobaccoUse || '',
+      medications: initialData.currentMedications?.join(', ') || '',
+      allergies: initialData.allergies?.join(', ') || '',
+      foodIntolerances: initialData.foodIntolerances?.join(', ') || '',
+      nutritionalObjective: initialData.nutritionalObjective || '',
+      dietaryRestrictions: initialData.dietaryRestrictions || '',
+    } : {
+      date: new Date().toISOString().split('T')[0],
+      medicalHistory: '',
+      surgicalHistory: '',
+      familyHistory: '',
+      currentComplaints: '',
+      pastDiseases: '',
+      dietaryHabits: '',
+      physicalActivity: '',
+      alcoholConsumption: '',
+      tobaccoUse: '',
+      medications: '',
+      allergies: '',
+      foodIntolerances: '',
+      nutritionalObjective: '',
+      dietaryRestrictions: '',
+    }
+  );
   const [showConfirm, setShowConfirm] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
 
@@ -37,20 +51,57 @@ export const ClinicalHistoryForm: React.FC<ClinicalHistoryFormProps> = ({ onSubm
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validar campos obligatorios
-    const missingFields = [];
-    if (!formData.date) missingFields.push('Fecha de Consulta');
-    if (!formData.medicalHistory.trim()) missingFields.push('Antecedentes Médicos');
-    if (!formData.nutritionalObjective.trim()) missingFields.push('Objetivo Nutricional');
+    // Si NO hay información registrada aún (initialData vacío o sin propiedades de contenido)
+    const hasInitialData = initialData && (
+      initialData.medicalHistory || 
+      initialData.surgicalHistory || 
+      initialData.familyHistory || 
+      initialData.currentComplaints || 
+      initialData.pastDiseases || 
+      initialData.dietaryHabits || 
+      initialData.physicalActivity || 
+      initialData.alcoholConsumption || 
+      initialData.tobaccoUse || 
+      initialData.currentMedications?.length || 
+      initialData.allergies?.length || 
+      initialData.foodIntolerances?.length || 
+      initialData.nutritionalObjective || 
+      initialData.dietaryRestrictions
+    );
 
-    if (missingFields.length > 0) {
-      setValidationError(`Campos obligatorios incompletos: ${missingFields.join(', ')}`);
-      return;
+    if (!hasInitialData) {
+      const missingFields = [];
+      
+      // I. ANTECEDENTES
+      if (!formData.medicalHistory.trim()) missingFields.push('I. ANTECEDENTES');
+      
+      // II. MOTIVO DE CONSULTA
+      if (!formData.currentComplaints.trim()) missingFields.push('II. MOTIVO DE CONSULTA');
+      
+      // III. HÁBITOS
+      if (!formData.dietaryHabits.trim() && !formData.physicalActivity.trim() && 
+          !formData.alcoholConsumption.trim() && !formData.tobaccoUse.trim()) {
+        missingFields.push('III. HÁBITOS');
+      }
+      
+      // IV. MEDICAMENTOS Y ALERGIAS
+      if (!formData.medications.trim() && !formData.allergies.trim() && 
+          !formData.foodIntolerances.trim()) {
+        missingFields.push('IV. MEDICAMENTOS Y ALERGIAS');
+      }
+      
+      // V. OBJETIVO NUTRICIONAL
+      if (!formData.nutritionalObjective.trim()) missingFields.push('V. OBJETIVO NUTRICIONAL');
+
+      if (missingFields.length > 0) {
+        setValidationError(`Campos obligatorios incompletos: ${missingFields.join(', ')}`);
+        return;
+      }
     }
+    // Si YA hay información registrada, permitir guardar cualquier cambio
     
     setShowConfirm(true);
   };
@@ -309,11 +360,13 @@ export const ClinicalHistoryForm: React.FC<ClinicalHistoryFormProps> = ({ onSubm
         cancelText="Cancelar"
         onConfirm={handleConfirmSubmit}
         onCancel={() => setShowConfirm(false)}
-      />      
+      />
+
       <ValidationAlert
         isOpen={!!validationError}
         message={validationError}
         onClose={() => setValidationError('')}
-      />    </form>
+      />
+    </form>
   );
 };

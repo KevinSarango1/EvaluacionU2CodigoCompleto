@@ -43,4 +43,13 @@ export const patientService = {
     const patients = patientService.getAllPatients();
     return patients.some(p => p.email.toLowerCase() === email.toLowerCase());
   },
+
+  deletePatient: (id: string): boolean => {
+    const patients = patientService.getAllPatients();
+    const index = patients.findIndex(p => p.id === id);
+    if (index === -1) return false;
+    patients.splice(index, 1);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
+    return true;
+  },
 };

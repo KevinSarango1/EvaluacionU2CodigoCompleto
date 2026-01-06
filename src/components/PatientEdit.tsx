@@ -3,6 +3,7 @@ import { Patient } from '../types/patient';
 import { patientService } from '../services/patientService';
 import { ConfirmDialog } from './ConfirmDialog';
 import { SuccessAlert } from './SuccessAlert';
+import { ValidationAlert } from './ValidationAlert';
 
 interface PatientEditProps {
   patientId: string;
@@ -23,6 +24,7 @@ export const PatientEdit: React.FC<PatientEditProps> = ({ patientId, onPatientUp
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [validationError, setValidationError] = useState<string>('');
 
   useEffect(() => {
     const patient = patientService.getPatientById(patientId);
@@ -56,6 +58,32 @@ export const PatientEdit: React.FC<PatientEditProps> = ({ patientId, onPatientUp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Obtener el paciente original para comparar
+    const originalPatient = patientService.getPatientById(patientId);
+    if (!originalPatient) return;
+
+    // Validar que email no sea duplicado (si cambió)
+    if (formData.email !== originalPatient.email) {
+      const existingPatient = patientService.getAllPatients()
+        .find(p => p.email.toLowerCase() === formData.email.toLowerCase() && p.id !== patientId);
+      if (existingPatient) {
+        setValidationError('Este email ya está registrado');
+        return;
+      }
+    }
+
+    // Validar que teléfono no sea duplicado (si cambió)
+    if (formData.phone !== originalPatient.phone) {
+      const existingPatient = patientService.getAllPatients()
+        .find(p => p.phone === formData.phone && p.id !== patientId);
+      if (existingPatient) {
+        setValidationError('Este teléfono ya está registrado');
+        return;
+      }
+    }
+
+    setValidationError('');
     setShowConfirm(true);
   };
 
@@ -171,6 +199,12 @@ export const PatientEdit: React.FC<PatientEditProps> = ({ patientId, onPatientUp
         title="Actualizado"
         message={`${formData.firstName} ${formData.lastName} ha sido actualizado exitosamente`}
         onClose={() => setShowSuccess(false)}
+      />
+
+      <ValidationAlert
+        isOpen={!!validationError}
+        message={validationError}
+        onClose={() => setValidationError('')}
       />
     </form>
   );

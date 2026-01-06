@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types/auth';
 import { authService } from '../services/authService';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface AdminPanelProps {
   onLogout: () => void;
@@ -19,6 +20,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteName, setDeleteName] = useState('');
 
   useEffect(() => {
     loadNutritionists();
@@ -81,6 +85,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
       return;
     }
     
+    // Validar que el email no sea duplicado (solo cuando creamos)
+    if (!editingId) {
+      const existingNutritionist = authService.getNutritionists()
+        .find(n => n.email.toLowerCase() === formData.email.toLowerCase());
+      if (existingNutritionist) {
+        errors.email = 'Este email ya está registrado';
+        setValidationErrors(errors);
+        return;
+      }
+    }
+
+    // Validar que el teléfono no sea duplicado (solo cuando creamos)
+    if (!editingId) {
+      const existingNutritionistPhone = authService.getNutritionists()
+        .find(n => n.phone === formData.phone);
+      if (existingNutritionistPhone) {
+        errors.phone = 'Este teléfono ya está registrado';
+        setValidationErrors(errors);
+        return;
+      }
+    }
+    
     // Limpiar errores si la validación pasó
     setValidationErrors({});
     
@@ -132,10 +158,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('¿Está seguro de que desea eliminar este nutricionista?')) {
-      authService.deleteNutritionist(id);
+    const nutritionist = nutritionists.find(n => n.id === id);
+    if (nutritionist) {
+      setDeleteId(id);
+      setDeleteName(nutritionist.fullName);
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      authService.deleteNutritionist(deleteId);
       loadNutritionists();
     }
+    setShowDeleteConfirm(false);
+    setDeleteId(null);
+    setDeleteName('');
   };
 
   return (
@@ -342,6 +380,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
           )}
         </div>
       </div>
+
+      {/* Diálogo de confirmación de eliminación */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Eliminar Nutricionista"
+        message={`¿Estás seguro/a de que deseas eliminar a ${deleteName}?\n\nEsta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setDeleteId(null);
+          setDeleteName('');
+        }}
+      />
     </div>
   );
 };

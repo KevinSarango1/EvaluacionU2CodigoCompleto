@@ -9,6 +9,7 @@ import { AnthropometryDisplay } from './AnthropometryDisplay';
 import { PatientEdit } from './PatientEdit';
 import { WeeklyMenuForm } from './WeeklyMenuForm';
 import { SuccessAlert } from './SuccessAlert';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface PatientDetailProps {
   patientId: string;
@@ -24,6 +25,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
     message: '',
     title: '',
   });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!patient) {
     return <div className="p-6">Paciente no encontrado</div>;
@@ -105,6 +107,22 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
       message: 'Antropometría guardada',
     });
   };
+  const handleDeletePatient = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeletePatient = () => {
+    patientService.deletePatient(patient!.id);
+    setShowDeleteConfirm(false);
+    setSuccessAlert({
+      isOpen: true,
+      title: 'Eliminado',
+      message: 'Paciente eliminado exitosamente',
+    });
+    setTimeout(() => {
+      onBack();
+    }, 1500);
+  };
 
   const handleWeeklyMenuUpdate = (weeklyMenu: any) => {
     const updatedPatient = patientService.updatePatient(patient.id, { weeklyMenu });
@@ -152,6 +170,12 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
           >
             ✏️ Editar Perfil
+          </button>
+          <button
+            onClick={handleDeletePatient}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+          >
+            🗑️ Eliminar Paciente
           </button>
         </div>
       </div>
@@ -308,6 +332,17 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
         title={successAlert.title}
         message={successAlert.message}
         onClose={() => setSuccessAlert({ isOpen: false, message: '', title: '' })}
+      />
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Eliminar Paciente"
+        message={`¿Estás seguro/a de que deseas eliminar a ${patient.firstName} ${patient.lastName}?\n\nEsta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        onConfirm={confirmDeletePatient}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
     </div>
   );

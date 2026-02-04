@@ -1,0 +1,125 @@
+@startuml Diagrama_Paquetes_Nutricion
+
+!theme plain
+skinparam packageBackgroundColor #E1F5FE
+skinparam packageBorderColor #01579B
+skinparam classBackgroundColor #FEFECE
+skinparam classBorderColor #333333
+skinparam arrowColor #333333
+
+' ==================== FRONTEND ====================
+package "Client.Presentation (React + TypeScript)" {
+    component App.tsx
+    
+    package "Components" {
+        component Login
+        component AdminPanel
+        component PatientDashboard
+        component PatientDetail
+        component PatientEdit
+        component ClinicalHistoryForm
+        component BiometricsForm
+        component BiometricsDisplay
+        component AnthropometryForm
+        component AnthropometryDisplay
+        component WeeklyMenuForm
+        component ConfirmDialog
+        component ValidationAlert
+    }
+    
+    package "Services" {
+        component authService
+        component patientService
+    }
+    
+    package "Types" {
+        component auth.ts
+        component patient.ts
+    }
+}
+
+' ==================== BACKEND ====================
+package "Server.Business (Spring Boot)" {
+    package "Controller Layer" {
+        component AuthController
+        component PatientController
+    }
+    
+    package "Service Layer" {
+        component AuthService
+        component PatientService
+    }
+    
+    package "Entity/Model" {
+        component User
+        component Patient
+        component ClinicalHistory
+        component Biometrics
+        component Anthropometry
+    }
+    
+    package "DTO Layer" {
+        component LoginRequest
+        component LoginResponse
+        component PatientDTO
+        component ClinicalHistoryDTO
+        component BiometricsDTO
+        component AnthropometryDTO
+    }
+    
+    package "Repository Layer" {
+        component UserRepository
+        component PatientRepository
+        component ClinicalHistoryRepository
+        component BiometricsRepository
+        component AnthropometryRepository
+    }
+    
+    package "Security & Config" {
+        component SecurityConfig
+        component JwtAuthenticationFilter
+    }
+}
+
+' ==================== DATA LAYER ====================
+package "Data.Persistence (H2 Database - Development)" {
+    database "H2 Database" {
+        porttable users
+        porttable patients
+        porttable clinical_history
+        porttable biometrics
+        porttable anthropometry
+    }
+}
+
+' ==================== COMUNICACIONES ====================
+App.tsx -down-> AuthController : HTTPS/REST API\n(localhost:8080)
+App.tsx -down-> PatientController : HTTPS/REST API\n(localhost:8080)
+
+Login -up-> authService : auth state
+PatientDashboard -up-> patientService : patient data
+PatientDetail -up-> patientService : patient operations
+AdminPanel -up-> authService : nutritionist management
+
+authService -down-> AuthController : POST/GET requests
+patientService -down-> PatientController : CRUD operations
+
+AuthController -down-> AuthService : business logic
+PatientController -down-> PatientService : business logic
+
+AuthService -down-> UserRepository : database operations
+PatientService -down-> PatientRepository : database operations
+PatientService -down-> ClinicalHistoryRepository : clinical history
+PatientService -down-> BiometricsRepository : biometrics data
+PatientService -down-> AnthropometryRepository : anthropometry data
+
+UserRepository -down-> users : JPA/ORM
+PatientRepository -down-> patients : JPA/ORM
+ClinicalHistoryRepository -down-> clinical_history : JPA/ORM
+BiometricsRepository -down-> biometrics : JPA/ORM
+AnthropometryRepository -down-> anthropometry : JPA/ORM
+
+AuthController -right-> SecurityConfig : authentication
+PatientController -right-> JwtAuthenticationFilter : JWT validation
+
+@enduml

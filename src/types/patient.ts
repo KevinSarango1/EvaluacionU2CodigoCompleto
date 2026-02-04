@@ -17,14 +17,48 @@ export interface WeeklyMenu {
   id?: string;
   patientId: string;
   weekStartDate: string;
-  monday?: string;
-  tuesday?: string;
-  wednesday?: string;
-  thursday?: string;
-  friday?: string;
-  saturday?: string;
-  sunday?: string;
+  meals: MealSchedule;
   observations?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface MealSchedule {
+  [day: string]: DayMeals;
+}
+
+export interface DayMeals {
+  breakfast: MealFood[];
+  midMorning: MealFood[];
+  lunch: MealFood[];
+  afternoon: MealFood[];
+  dinner: MealFood[];
+}
+
+export interface MealFood {
+  foodId: string;
+  foodName: string;
+  quantity: number;
+  unit: string;
+  calories: number;
+  protein: number;
+  fats: number;
+  carbs: number;
+  fiber: number;
+}
+
+export interface Food {
+  id: string;
+  name: string;
+  description?: string;
+  grossWeight: number;
+  netWeight: number;
+  energyKcal: number;
+  energyKj: number;
+  protein: number;
+  fats: number;
+  carbohydrates: number;
+  fiber: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -62,6 +96,8 @@ export interface Biometrics {
   // Metabolismo de carbohidratos
   glucose: number;
   hba1c?: number;
+  insulin?: number;
+  homaIndex?: number;
   // Perfil lipídico
   totalCholesterol: number;
   ldl: number;
@@ -76,6 +112,10 @@ export interface Biometrics {
   // Función renal
   creatinine?: number;
   bun?: number;
+  urea?: number;
+  sodium?: number;
+  potassium?: number;
+  chloride?: number;
   // Proteínas
   totalProteins?: number;
   albumin?: number;
@@ -87,6 +127,7 @@ export interface Biometrics {
   platelets?: number;
   // Micronutrientes
   vitaminB12?: number;
+  vitaminD?: number;
   folacin?: number;
   iron?: number;
   ferritin?: number;
@@ -108,6 +149,7 @@ export interface Anthropometry {
   waistHipRatio?: number;
   armCircumference?: number;
   thighCircumference?: number;
+  calfCircumference?: number;
   // Pliegues cutáneos
   tricepsSkinfold?: number;
   bicepsSkinfold?: number;

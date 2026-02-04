@@ -1,0 +1,41 @@
+@startuml Diagrama_Dominio_Nutricion
+
+!theme plain
+skinparam classBackgroundColor #FEFECE
+skinparam classBorderColor #333333
+skinparam arrowColor #333333
+
+class Persona {
+  -id: Int
+  -xnull
+  -Datos Ux
+  -telefono: String
+}
+
+class Cliente {
+}
+
+class HistoriaClinica {
+  -fecha
+}
+
+class Antecedentes {
+}
+
+class Familiares {
+}
+
+class Medicamentos {
+}
+
+class Alergias {
+}
+
+Persona <|-- Cliente
+Cliente "1" -- "1..*" HistoriaClinica
+HistoriaClinica "1" -- "1" Antecedentes
+HistoriaClinica "1" -- "1" Familiares
+HistoriaClinica "1" -- "1" Medicamentos
+HistoriaClinica "1" -- "1" Alergias
+
+@enduml

@@ -2,7 +2,24 @@ import { Patient, ClinicalHistory } from '../types/patient';
 
 const STORAGE_KEY = 'patients';
 
+type PatientObserver = (patients: Patient[]) => void;
+const observers: PatientObserver[] = [];
+
 export const patientService = {
+  // Observer Pattern - Métodos de suscripción
+  subscribe: (observer: PatientObserver): (() => void) => {
+    observers.push(observer);
+    return () => {
+      const index = observers.indexOf(observer);
+      if (index > -1) observers.splice(index, 1);
+    };
+  },
+
+  notify: (): void => {
+    const patients = patientService.getAllPatients();
+    observers.forEach(observer => observer(patients));
+  },
+
   getAllPatients: (): Patient[] => {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
@@ -21,6 +38,7 @@ export const patientService = {
     const patients = patientService.getAllPatients();
     patients.push(newPatient);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
+    patientService.notify();
     return newPatient;
   },
 
@@ -30,6 +48,7 @@ export const patientService = {
     if (index === -1) return null;
     patients[index] = { ...patients[index], ...updates };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
+    patientService.notify();
     return patients[index];
   },
 
@@ -50,6 +69,7 @@ export const patientService = {
     if (index === -1) return false;
     patients.splice(index, 1);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(patients));
+    patientService.notify();
     return true;
   },
 };

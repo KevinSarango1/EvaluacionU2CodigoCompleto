@@ -23,6 +23,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState('');
+  const [showCreateConfirm, setShowCreateConfirm] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<any>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadNutritionists();
@@ -36,11 +39,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Validar que teléfono solo contenga números
+    // Validar que teléfono solo contenga números y máximo 10 dígitos
     if (name === 'phone') {
       const phoneRegex = /^[0-9]*$/;
-      if (!phoneRegex.test(value)) {
-        return; // No actualizar si contiene caracteres no numéricos
+      if (!phoneRegex.test(value) || value.length > 10) {
+        return; // No actualizar si contiene caracteres no numéricos o excede 10 dígitos
       }
     }
     
@@ -50,7 +53,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validar campos requeridos
+    // VALIDACIÓN 1: Validar campos requeridos
     const errors: Record<string, string> = {};
     
     if (!formData.email.trim()) {
@@ -76,61 +79,84 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
     if (!formData.phone.trim()) {
       errors.phone = 'El teléfono es requerido';
     } else if (formData.phone.length < 10) {
-      errors.phone = 'Ingrese un teléfono válido (mínimo 10 dígitos)';
+      errors.phone = 'Ingrese un teléfono válido (exactamente 10 dígitos)';
+    } else if (formData.phone.length > 10) {
+      errors.phone = 'El teléfono debe tener exactamente 10 dígitos';
     }
     
-    // Si hay errores, mostrarlos y no enviar
+    // VALIDACIÓN 2: Si hay errores básicos, mostrar y retornar
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       return;
     }
     
-    // Validar que el email no sea duplicado (solo cuando creamos)
-    if (!editingId) {
-      const existingNutritionist = authService.getNutritionists()
-        .find(n => n.email.toLowerCase() === formData.email.toLowerCase());
-      if (existingNutritionist) {
-        errors.email = 'Este email ya está registrado';
-        setValidationErrors(errors);
-        return;
-      }
+    // VALIDACIÓN 3: Validar duplicidad de EMAIL (funciona en crear Y editar)
+    const existingEmail = authService.getNutritionists()
+      .find(n => n.email.toLowerCase() === formData.email.toLowerCase() && n.id !== editingId);
+    if (existingEmail) {
+      errors.email = 'Este email ya está registrado por otro nutricionista';
+      setValidationErrors(errors);
+      return;
     }
 
-    // Validar que el teléfono no sea duplicado (solo cuando creamos)
-    if (!editingId) {
-      const existingNutritionistPhone = authService.getNutritionists()
-        .find(n => n.phone === formData.phone);
-      if (existingNutritionistPhone) {
-        errors.phone = 'Este teléfono ya está registrado';
-        setValidationErrors(errors);
-        return;
-      }
+    // VALIDACIÓN 4: Validar duplicidad de TELÉFONO (funciona en crear Y editar)
+    const existingPhone = authService.getNutritionists()
+      .find(n => n.phone === formData.phone && n.id !== editingId);
+    if (existingPhone) {
+      errors.phone = 'Este teléfono ya está registrado por otro nutricionista';
+      setValidationErrors(errors);
+      return;
     }
     
-    // Limpiar errores si la validación pasó
+    // VALIDACIÓN 5: Si todo está OK, mostrar diálogo de confirmación
     setValidationErrors({});
+    setPendingFormData(formData);
+    setShowCreateConfirm(true);
+  };
+
+  /**
+   * CONFIRMACIÓN: Crear/Actualizar después de validar y confirmar
+   * 
+   * PATRÓN FACADE + VALIDATION:
+   * authService encapsula la creación/actualización
+   * mientras que el componente valida y pide confirmación
+   */
+  const confirmCreateNutritionist = () => {
+    if (!pendingFormData) return;
+    
+    let message = '';
     
     if (editingId) {
-      // Actualizar nutricionista
+      // Actualizar nutricionista existente
       authService.updateNutritionist(editingId, {
-        ...formData,
+        ...pendingFormData,
         role: 'nutritionist',
       } as any);
+      message = '✅ Datos actualizados correctamente';
       setEditingId(null);
     } else {
       // Crear nuevo nutricionista
       authService.registerNutritionist({
-        email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName,
-        specialization: formData.specialization,
-        phone: formData.phone,
+        email: pendingFormData.email,
+        password: pendingFormData.password,
+        fullName: pendingFormData.fullName,
+        specialization: pendingFormData.specialization,
+        phone: pendingFormData.phone,
         role: 'nutritionist',
       });
+      message = '✅ Nutricionista agregado correctamente';
     }
     
     loadNutritionists();
     resetForm();
+    setShowCreateConfirm(false);
+    setPendingFormData(null);
+    
+    // Mostrar mensaje de éxito por 4 segundos
+    setSuccessMessage(message);
+    setTimeout(() => {
+      setSuccessMessage(null);
+    }, 4000);
   };
 
   const resetForm = () => {
@@ -170,6 +196,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
     if (deleteId) {
       authService.deleteNutritionist(deleteId);
       loadNutritionists();
+      setSuccessMessage('✅ Nutricionista eliminado correctamente');
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 4000);
     }
     setShowDeleteConfirm(false);
     setDeleteId(null);
@@ -199,6 +229,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
       </header>
 
       <div className="container mx-auto px-6 py-8">
+        {/* Mensaje de Éxito - Agregado/Actualizado */}
+        {successMessage && (
+          <div className="mb-6 p-6 bg-gradient-to-br from-emerald-50 to-green-100 border-2 border-green-400 rounded-xl shadow-lg animate-pulse">
+            <div className="flex items-center gap-3">
+              <span className="text-4xl">✅</span>
+              <div>
+                <p className="text-green-900 font-bold text-lg">{successMessage}</p>
+                <p className="text-green-700 text-sm mt-1">La operación se completó exitosamente</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Botón agregar - mejorado */}
         <div className="mb-8 flex justify-between items-center">
           <h2 className="text-3xl font-bold text-slate-800">📋 Nutricionistas</h2>
@@ -337,9 +380,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
                 <div className="flex gap-4 pt-4">
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold rounded-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold rounded-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
                   >
-                    {editingId ? '✅ Actualizar Nutricionista' : '➕ Crear Nutricionista'}
+                    <span>{editingId ? '✅' : '➕'}</span>
+                    {editingId ? 'Actualizar Nutricionista' : 'Crear Nutricionista'}
                   </button>
                 </div>
               </form>
@@ -408,7 +452,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
         </div>
       </div>
 
-      {/* Diálogo de confirmación */}
+      {/* Diálogo de confirmación - Eliminar */}
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         title="Eliminar Nutricionista"
@@ -421,6 +465,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
           setShowDeleteConfirm(false);
           setDeleteId(null);
           setDeleteName('');
+        }}
+      />
+
+      {/* Diálogo de confirmación - Crear/Actualizar Nutricionista */}
+      <ConfirmDialog
+        isOpen={showCreateConfirm}
+        title={editingId ? '✏️ Confirmar actualización' : '➕ Confirmar creación'}
+        message={editingId 
+          ? `¿Deseas actualizar los datos de ${pendingFormData?.fullName}?\n\nEmail: ${pendingFormData?.email}\nTeléfono: ${pendingFormData?.phone}`
+          : `¿Deseas crear un nuevo nutricionista?\n\nNombre: ${pendingFormData?.fullName}\nEmail: ${pendingFormData?.email}\nTeléfono: ${pendingFormData?.phone}`
+        }
+        confirmText={editingId ? 'Actualizar' : 'Crear'}
+        cancelText="Cancelar"
+        variant="primary"
+        onConfirm={confirmCreateNutritionist}
+        onCancel={() => {
+          setShowCreateConfirm(false);
+          setPendingFormData(null);
         }}
       />
     </div>

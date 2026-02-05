@@ -258,18 +258,9 @@ export const App: React.FC = () => {
                           e.stopPropagation();
                           setSelectedPatientId(patient.id);
                         }}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-sm"
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-sm"
                       >
                         Ver Detalles
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedPatientId(patient.id);
-                        }}
-                        className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold text-sm"
-                      >
-                        Editar
                       </button>
                     </div>
                   </div>

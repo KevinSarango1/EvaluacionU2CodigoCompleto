@@ -6,7 +6,6 @@ import { BiometricsForm } from './BiometricsForm';
 import { BiometricsDisplay } from './BiometricsDisplay';
 import { AnthropometryForm } from './AnthropometryForm';
 import { AnthropometryDisplay } from './AnthropometryDisplay';
-import { PatientEdit } from './PatientEdit';
 import { WeeklyMenuFormNew } from './WeeklyMenuFormNew';
 import { FoodDatabase } from './FoodDatabase';
 import { PatientProgressReport } from './PatientProgressReport';
@@ -22,6 +21,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
   const [patient, setPatient] = useState<Patient | null>(patientService.getPatientById(patientId));
   const [activeTab, setActiveTab] = useState<'history' | 'biometrics' | 'anthropometry' | 'foods' | 'menu' | 'progress'>('history');
   const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState<Partial<Patient>>({});
   const [foods, setFoods] = useState<Food[]>([
     {
       id: '1',
@@ -59,31 +59,23 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
     return <div className="p-6">Paciente no encontrado</div>;
   }
 
-  if (isEditing) {
-    return (
-      <div className="p-6">
-        <button
-          onClick={() => setIsEditing(false)}
-          className="mb-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-        >
-          ← Volver
-        </button>
-        <PatientEdit
-          patientId={patientId}
-          onPatientUpdated={(updatedPatient) => {
-            setPatient(updatedPatient);
-            setIsEditing(false);
-            setSuccessAlert({
-              isOpen: true,
-              title: 'Actualizado',
-              message: 'Paciente actualizado exitosamente',
-            });
-          }}
-          onCancel={() => setIsEditing(false)}
-        />
-      </div>
-    );
-  }
+  const handleEditProfile = () => {
+    setEditFormData(patient);
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = () => {
+    const updatedPatient = patientService.updatePatient(patient.id, editFormData);
+    if (updatedPatient) {
+      setPatient(updatedPatient);
+      setIsEditing(false);
+      setSuccessAlert({
+        isOpen: true,
+        title: 'Actualizado',
+        message: 'Perfil del paciente actualizado exitosamente',
+      });
+    }
+  };
 
   const handleHistoryUpdate = (updates: Partial<ClinicalHistory>) => {
     const updatedHistory = {
@@ -223,7 +215,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
             {/* Botones de acción mejorados */}
             <div className="flex flex-col gap-3">
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={handleEditProfile}
                 className="px-8 py-3 bg-gradient-to-r from-white to-cyan-100 text-slate-900 rounded-xl hover:from-cyan-50 hover:to-blue-50 transition duration-300 font-bold shadow-xl hover:shadow-2xl transform hover:scale-105 flex items-center gap-2"
               >
                 <span>✏️</span> Editar Perfil
@@ -481,6 +473,113 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
       </div>
 
       {/* Alertas */}
+      {isEditing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {/* Header del Modal */}
+            <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-cyan-500 text-white p-8 sticky top-0 z-10">
+              <h2 className="text-3xl font-bold">✏️ Editar Perfil</h2>
+              <p className="text-blue-50 text-sm mt-2">Actualiza la información del paciente</p>
+            </div>
+
+            {/* Contenido del Formulario */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveProfile();
+              }}
+              className="p-8 space-y-6"
+            >
+              {/* Row 1: Nombre y Apellido */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">📝 Nombre</label>
+                  <input
+                    type="text"
+                    value={editFormData.firstName || patient.firstName}
+                    onChange={(e) => setEditFormData({...editFormData, firstName: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">📝 Apellido</label>
+                  <input
+                    type="text"
+                    value={editFormData.lastName || patient.lastName}
+                    onChange={(e) => setEditFormData({...editFormData, lastName: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Email y Teléfono */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">📧 Email</label>
+                  <input
+                    type="email"
+                    value={editFormData.email || patient.email}
+                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">📞 Teléfono</label>
+                  <input
+                    type="tel"
+                    value={editFormData.phone || patient.phone}
+                    onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Fecha de Nacimiento y Género */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">🎂 Fecha de Nacimiento</label>
+                  <input
+                    type="date"
+                    value={editFormData.dateOfBirth || patient.dateOfBirth}
+                    onChange={(e) => setEditFormData({...editFormData, dateOfBirth: e.target.value})}
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">👥 Género</label>
+                  <select
+                    value={editFormData.gender || patient.gender}
+                    onChange={(e) => setEditFormData({...editFormData, gender: e.target.value as 'M' | 'F'})}
+                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm bg-white cursor-pointer"
+                  >
+                    <option value="M">👨 Masculino</option>
+                    <option value="F">👩 Femenino</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-6 border-t border-slate-200">
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition duration-200 uppercase tracking-wide flex items-center justify-center gap-2 text-lg"
+                >
+                  <span>💾</span>
+                  Guardar Cambios
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition duration-200 uppercase tracking-wide"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <SuccessAlert
         isOpen={successAlert.isOpen}
         title={successAlert.title}

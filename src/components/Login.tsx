@@ -145,27 +145,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               <p><span className="font-bold">Permisos:</span> Crear y gestionar nutricionistas, acceso total al sistema</p>
             </div>
           </div>
-
-          {/* Demo Credentials - Nutritionist */}
-          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 border-2 border-emerald-300 shadow-md">
-            <p className="text-sm text-emerald-900 mb-4 font-bold flex items-center gap-2">
-              <span className="text-xl">👨‍⚕️</span> Nutricionista (Demo)
-            </p>
-            <div className="space-y-3">
-              <div className="bg-white rounded-lg p-3 flex items-center justify-between">
-                <span className="text-slate-600 font-semibold text-sm">Email:</span>
-                <span className="text-emerald-700 font-mono text-sm font-bold">nutri@demo.com</span>
-              </div>
-              <div className="bg-white rounded-lg p-3 flex items-center justify-between">
-                <span className="text-slate-600 font-semibold text-sm">Contraseña:</span>
-                <span className="text-emerald-700 font-mono text-sm font-bold">nutri123</span>
-              </div>
-            </div>
-            <div className="mt-4 bg-white rounded-lg p-3 text-xs text-emerald-800 flex gap-2">
-              <span className="text-lg">ℹ️</span>
-              <p><span className="font-bold">Permisos:</span> Ver pacientes, gestionar menús y seguimiento</p>
-            </div>
-          </div>
         </div>
 
         {/* Footer */}

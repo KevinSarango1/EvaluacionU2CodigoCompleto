@@ -34,12 +34,12 @@ export const PatientProgressReport: React.FC<PatientProgressReportProps> = ({ pa
   }
 
   // Construir datos de progreso (actualmente solo una medición)
-  const progressData = [
+  const progressData: { date: string; weight: number; fat: number; muscle: number }[] = [
     {
       date: patient.clinicalHistory!.anthropometry!.measurementDate,
-      weight: patient.clinicalHistory!.anthropometry!.weight,
-      fat: patient.clinicalHistory!.anthropometry!.bodyFatPercentage,
-      muscle: patient.clinicalHistory!.anthropometry!.muscleMass || 0,
+      weight: Number(patient.clinicalHistory!.anthropometry!.weight),
+      fat: Number(patient.clinicalHistory!.anthropometry!.bodyFatPercentage),
+      muscle: Number(patient.clinicalHistory!.anthropometry!.muscleMass || 0),
     },
   ];
 
@@ -316,10 +316,10 @@ export const PatientProgressReport: React.FC<PatientProgressReportProps> = ({ pa
                 <p className="font-semibold text-blue-900">Peso ideal</p>
                 <p className="text-sm text-blue-700">80 kg</p>
               </div>
-              <div className="w-full bg-blue-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{width: `${(lastMeasurement.weight / 80) * 100}%`}}></div>
+              <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+                <div className="bg-blue-600 h-2 rounded-full" style={{width: `${Math.min((lastMeasurement.weight / 80) * 100, 100)}%`}}></div>
               </div>
-              <p className="text-xs text-blue-700 mt-1">{((lastMeasurement.weight / 80) * 100).toFixed(0)}% completado</p>
+              <p className="text-xs text-blue-700 mt-1">{Math.min(Number(((lastMeasurement.weight / 80) * 100).toFixed(0)), 100)}% completado</p>
             </div>
 
             <div className="bg-white rounded-lg p-4">
@@ -327,10 +327,10 @@ export const PatientProgressReport: React.FC<PatientProgressReportProps> = ({ pa
                 <p className="font-semibold text-blue-900">Grasa corporal</p>
                 <p className="text-sm text-blue-700">25%</p>
               </div>
-              <div className="w-full bg-blue-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{width: `${(lastMeasurement.fat / 30) * 100}%`}}></div>
+              <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+                <div className="bg-blue-600 h-2 rounded-full" style={{width: `${Math.min((lastMeasurement.fat / 30) * 100, 100)}%`}}></div>
               </div>
-              <p className="text-xs text-blue-700 mt-1">{((lastMeasurement.fat / 30) * 100).toFixed(0)}% completado</p>
+              <p className="text-xs text-blue-700 mt-1">{Math.min(Number(((lastMeasurement.fat / 30) * 100).toFixed(0)), 100)}% completado</p>
             </div>
           </div>
         </div>

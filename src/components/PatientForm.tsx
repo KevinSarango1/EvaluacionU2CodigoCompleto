@@ -26,11 +26,39 @@ export const PatientForm: React.FC<PatientFormProps> = ({ onPatientCreated }) =>
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    // Validar que teléfono solo contenga números
+    // VALIDACIÓN: Nombre - solo letras y espacios (sin números)
+    if (name === 'firstName') {
+      const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
+      if (!nameRegex.test(value)) {
+        return; // No actualizar si contiene números o caracteres especiales
+      }
+    }
+    
+    // VALIDACIÓN: Apellido - solo letras y espacios (sin números)
+    if (name === 'lastName') {
+      const lastNameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
+      if (!lastNameRegex.test(value)) {
+        return; // No actualizar si contiene números o caracteres especiales
+      }
+    }
+    
+    // VALIDACIÓN: Contraseña - limitado a 20 caracteres máximo
+    if (name === 'password') {
+      if (value.length > 20) {
+        return; // No permitir más de 20 caracteres
+      }
+    }
+    
+    // VALIDACIÓN: Teléfono - solo números, máximo 10 dígitos, debe empezar por 09
     if (name === 'phone') {
       const phoneRegex = /^[0-9]*$/;
-      if (!phoneRegex.test(value)) {
-        return; // No actualizar si contiene caracteres no numéricos
+      // Validar números solo
+      if (!phoneRegex.test(value) || value.length > 10) {
+        return; // No actualizar si contiene caracteres no numéricos o excede 10 dígitos
+      }
+      // Validar que inicie con 09 si tiene al menos 2 dígitos
+      if (value.length >= 2 && !value.startsWith('09')) {
+        return; // No actualizar si no empieza por 09
       }
     }
     
@@ -63,6 +91,43 @@ export const PatientForm: React.FC<PatientFormProps> = ({ onPatientCreated }) =>
     // Validar email duplicado
     if (patientService.emailExists(formData.email)) {
       setValidationError('Este correo ya está registrado en el sistema');
+      return;
+    }
+
+    // VALIDACIÓN: Contraseña - 6 a 20 caracteres
+    if (formData.password.length < 6) {
+      setValidationError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    } else if (formData.password.length > 20) {
+      setValidationError('La contraseña debe tener máximo 20 caracteres');
+      return;
+    }
+
+    // VALIDACIÓN: Teléfono - si se proporciona, debe ser exactamente 10 dígitos y empezar por 09
+    if (formData.phone.trim()) {
+      if (formData.phone.length !== 10) {
+        setValidationError('El teléfono debe tener exactamente 10 dígitos');
+        return;
+      } else if (!formData.phone.startsWith('09')) {
+        setValidationError('El teléfono debe comenzar con 09');
+        return;
+      }
+    }
+
+    // VALIDACIÓN: Fecha de nacimiento - año mínimo 1900 y no permitir fechas futuras
+    const dateOfBirth = new Date(formData.dateOfBirth);
+    const today = new Date();
+    const minYear = 1900;
+    
+    // Validar año mínimo
+    if (dateOfBirth.getFullYear() < minYear) {
+      setValidationError(`Año de nacimiento debe ser a partir de ${minYear}`);
+      return;
+    }
+    
+    // Validar que no sea fecha futura
+    if (dateOfBirth > today) {
+      setValidationError('La fecha de nacimiento no puede ser una fecha futura');
       return;
     }
 

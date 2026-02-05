@@ -39,11 +39,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Validar que teléfono solo contenga números y máximo 10 dígitos
+    // VALIDACIÓN: Nombre completo - solo letras y espacios (sin números)
+    if (name === 'fullName') {
+      const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
+      if (!nameRegex.test(value)) {
+        return; // No actualizar si contiene números o caracteres especiales
+      }
+    }
+    
+    // VALIDACIÓN: Contraseña - limitado a 20 caracteres máximo
+    if (name === 'password') {
+      if (value.length > 20) {
+        return; // No permitir más de 20 caracteres
+      }
+    }
+    
+    // VALIDACIÓN: Especialización - solo letras y espacios, máximo 30 caracteres
+    if (name === 'specialization') {
+      const specRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
+      if (!specRegex.test(value) || value.length > 30) {
+        return; // No actualizar si contiene números o caracteres especiales o excede 30 caracteres
+      }
+    }
+    
+    // VALIDACIÓN: Teléfono - solo números, máximo 10 dígitos, debe empezar por 09
     if (name === 'phone') {
       const phoneRegex = /^[0-9]*$/;
+      // Validar números solo
       if (!phoneRegex.test(value) || value.length > 10) {
         return; // No actualizar si contiene caracteres no numéricos o excede 10 dígitos
+      }
+      // Validar que inicie con 09 si tiene al menos 2 dígitos
+      if (value.length >= 2 && !value.startsWith('09')) {
+        return; // No actualizar si no empieza por 09
       }
     }
     
@@ -66,14 +94,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
       errors.password = 'La contraseña es requerida';
     } else if (formData.password.length < 6) {
       errors.password = 'La contraseña debe tener al menos 6 caracteres';
+    } else if (formData.password.length > 20) {
+      errors.password = 'La contraseña debe tener máximo 20 caracteres';
     }
     
     if (!formData.fullName.trim()) {
       errors.fullName = 'El nombre completo es requerido';
+    } else if (/\d/.test(formData.fullName)) {
+      errors.fullName = 'El nombre no puede contener números';
     }
     
     if (!formData.specialization.trim()) {
       errors.specialization = 'La especialización es requerida';
+    } else if (/\d/.test(formData.specialization)) {
+      errors.specialization = 'La especialización no puede contener números';
+    } else if (formData.specialization.length > 30) {
+      errors.specialization = 'La especialización debe tener máximo 30 caracteres';
     }
     
     if (!formData.phone.trim()) {
@@ -82,6 +118,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, currentUser })
       errors.phone = 'Ingrese un teléfono válido (exactamente 10 dígitos)';
     } else if (formData.phone.length > 10) {
       errors.phone = 'El teléfono debe tener exactamente 10 dígitos';
+    } else if (!formData.phone.startsWith('09')) {
+      errors.phone = 'El teléfono debe comenzar con 09';
     }
     
     // VALIDACIÓN 2: Si hay errores básicos, mostrar y retornar

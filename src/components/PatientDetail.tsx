@@ -54,21 +54,147 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
     title: '',
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+
+  // Manejador de cambios para el formulario de edición con validaciones
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+
+    // VALIDACIÓN: Nombre - solo letras y espacios (sin números)
+    if (name === 'firstName') {
+      const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
+      if (!nameRegex.test(value)) {
+        return; // No actualizar si contiene números o caracteres especiales
+      }
+    }
+
+    // VALIDACIÓN: Apellido - solo letras y espacios (sin números)
+    if (name === 'lastName') {
+      const lastNameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]*$/;
+      if (!lastNameRegex.test(value)) {
+        return; // No actualizar si contiene números o caracteres especiales
+      }
+    }
+
+    // VALIDACIÓN: Contraseña - limitado a 20 caracteres máximo
+    if (name === 'password') {
+      if (value.length > 20) {
+        return; // No permitir más de 20 caracteres
+      }
+    }
+
+    // VALIDACIÓN: Teléfono - solo números, máximo 10 dígitos, debe empezar por 09
+    if (name === 'phone') {
+      const phoneRegex = /^[0-9]*$/;
+      // Validar números solo
+      if (!phoneRegex.test(value) || value.length > 10) {
+        return; // No actualizar si contiene caracteres no numéricos o excede 10 dígitos
+      }
+      // Validar que inicie con 09 si tiene al menos 2 dígitos
+      if (value.length >= 2 && !value.startsWith('09')) {
+        return; // No actualizar si no empieza por 09
+      }
+    }
+
+    // VALIDACIÓN: Fecha de nacimiento - validar año y rango
+    if (name === 'dateOfBirth' && value) {
+      const dateOfBirth = new Date(value);
+      const today = new Date();
+      const minYear = 1900;
+
+      const dateErrors: Record<string, string> = { ...editErrors };
+      
+      // Validar que la fecha sea válida
+      if (isNaN(dateOfBirth.getTime())) {
+        dateErrors.dateOfBirth = 'Fecha de nacimiento inválida';
+      } else if (dateOfBirth.getFullYear() < minYear) {
+        dateErrors.dateOfBirth = `Año de nacimiento debe ser a partir de ${minYear}`;
+      } else if (dateOfBirth > today) {
+        dateErrors.dateOfBirth = 'La fecha de nacimiento no puede ser una fecha futura';
+      } else {
+        // Si es válida, limpiar el error de fecha
+        delete dateErrors.dateOfBirth;
+      }
+      
+      setEditErrors(dateErrors);
+    }
+
+    setEditFormData({ ...editFormData, [name]: value });
+    
+    // Limpiar error del campo (excepto para dateOfBirth que ya se maneja arriba)
+    if (name !== 'dateOfBirth') {
+      setEditErrors({ ...editErrors, [name]: '' }); // Limpiar error del campo
+    }
+  };
 
   if (!patient) {
     return <div className="p-6">Paciente no encontrado</div>;
   }
 
   const handleEditProfile = () => {
-    setEditFormData(patient);
+    // Inicializar editFormData con todos los campos del paciente
+    setEditFormData({
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      email: patient.email,
+      phone: patient.phone,
+      dateOfBirth: patient.dateOfBirth,
+      gender: patient.gender,
+      password: '', // No precargamos la contraseña
+    });
     setIsEditing(true);
   };
 
   const handleSaveProfile = () => {
+    const errors: Record<string, string> = {};
+
+    // VALIDACIÓN: Contraseña - 6 a 20 caracteres (si se proporciona)
+    if (editFormData.password) {
+      if (editFormData.password.length < 6) {
+        errors.password = 'La contraseña debe tener al menos 6 caracteres';
+      } else if (editFormData.password.length > 20) {
+        errors.password = 'La contraseña debe tener máximo 20 caracteres';
+      }
+    }
+
+    // VALIDACIÓN: Teléfono - exactamente 10 dígitos y empezar por 09 (si se proporciona)
+    if (editFormData.phone && editFormData.phone.trim()) {
+      if (editFormData.phone.length !== 10) {
+        errors.phone = 'El teléfono debe tener exactamente 10 dígitos';
+      } else if (!editFormData.phone.startsWith('09')) {
+        errors.phone = 'El teléfono debe comenzar con 09';
+      }
+    }
+
+    // VALIDACIÓN: Fecha de nacimiento - año mínimo 1900 y no permitir fechas futuras
+    if (editFormData.dateOfBirth) {
+      const dateOfBirth = new Date(editFormData.dateOfBirth);
+      const today = new Date();
+      const minYear = 1900;
+
+      // Validar que la fecha sea válida
+      if (isNaN(dateOfBirth.getTime())) {
+        errors.dateOfBirth = 'Fecha de nacimiento inválida';
+      } else if (dateOfBirth.getFullYear() < minYear) {
+        errors.dateOfBirth = `Año de nacimiento debe ser a partir de ${minYear}`;
+      } else if (dateOfBirth > today) {
+        errors.dateOfBirth = 'La fecha de nacimiento no puede ser una fecha futura';
+      }
+    }
+
+    // Si hay errores, mostrarlos
+    if (Object.keys(errors).length > 0) {
+      console.log('Validation errors found:', errors);
+      setEditErrors(errors);
+      return;
+    }
+
+    // Si todo está OK, guardar cambios
     const updatedPatient = patientService.updatePatient(patient.id, editFormData);
     if (updatedPatient) {
       setPatient(updatedPatient);
       setIsEditing(false);
+      setEditErrors({});
       setSuccessAlert({
         isOpen: true,
         title: 'Actualizado',
@@ -490,24 +616,48 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
               }}
               className="p-8 space-y-6"
             >
+              {/* Errores de validación */}
+              {Object.keys(editErrors).length > 0 && (
+                <div className="p-6 bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-xl">
+                  <h4 className="text-red-900 font-bold mb-3 flex items-center gap-2">⚠️ Por favor corrige los errores:</h4>
+                  <ul className="space-y-2">
+                    {Object.entries(editErrors).map(([field, error]) => (
+                      <li key={field} className="text-red-700 text-sm flex items-center gap-2">
+                        <span>❌</span> {error}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Row 1: Nombre y Apellido */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">📝 Nombre</label>
                   <input
                     type="text"
-                    value={editFormData.firstName || patient.firstName}
-                    onChange={(e) => setEditFormData({...editFormData, firstName: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
+                    name="firstName"
+                    value={editFormData.firstName || ''}
+                    onChange={handleEditFormChange}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition text-sm ${
+                      editErrors.firstName
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500'
+                        : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500'
+                    }`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">📝 Apellido</label>
                   <input
                     type="text"
-                    value={editFormData.lastName || patient.lastName}
-                    onChange={(e) => setEditFormData({...editFormData, lastName: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
+                    name="lastName"
+                    value={editFormData.lastName || ''}
+                    onChange={handleEditFormChange}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition text-sm ${
+                      editErrors.lastName
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500'
+                        : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500'
+                    }`}
                   />
                 </div>
               </div>
@@ -518,8 +668,9 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
                   <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">📧 Email</label>
                   <input
                     type="email"
-                    value={editFormData.email || patient.email}
-                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    name="email"
+                    value={editFormData.email || ''}
+                    onChange={handleEditFormChange}
                     className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
                   />
                 </div>
@@ -527,9 +678,15 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
                   <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">📞 Teléfono</label>
                   <input
                     type="tel"
-                    value={editFormData.phone || patient.phone}
-                    onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
+                    name="phone"
+                    placeholder="Ej: 0987654321"
+                    value={editFormData.phone || ''}
+                    onChange={handleEditFormChange}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition text-sm ${
+                      editErrors.phone
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500'
+                        : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500'
+                    }`}
                   />
                 </div>
               </div>
@@ -540,22 +697,46 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
                   <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">🎂 Fecha de Nacimiento</label>
                   <input
                     type="date"
-                    value={editFormData.dateOfBirth || patient.dateOfBirth}
-                    onChange={(e) => setEditFormData({...editFormData, dateOfBirth: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm"
+                    name="dateOfBirth"
+                    value={editFormData.dateOfBirth || ''}
+                    onChange={handleEditFormChange}
+                    className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition text-sm ${
+                      editErrors.dateOfBirth
+                        ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500'
+                        : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500'
+                    }`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">👥 Género</label>
                   <select
-                    value={editFormData.gender || patient.gender}
-                    onChange={(e) => setEditFormData({...editFormData, gender: e.target.value as 'M' | 'F'})}
+                    name="gender"
+                    value={editFormData.gender || 'M'}
+                    onChange={handleEditFormChange}
                     className="w-full px-4 py-3 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none transition text-sm bg-white cursor-pointer"
                   >
                     <option value="M">👨 Masculino</option>
                     <option value="F">👩 Femenino</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Row 4: Contraseña */}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">🔐 Cambiar Contraseña (opcional)</label>
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Dejar en blanco para no cambiar"
+                  value={editFormData.password || ''}
+                  onChange={handleEditFormChange}
+                  className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none transition text-sm ${
+                    editErrors.password
+                      ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-500'
+                      : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500'
+                  }`}
+                />
+                <p className="text-xs text-slate-500 mt-1">Entre 6 y 20 caracteres si deseas cambiarla</p>
               </div>
 
               {/* Action Buttons */}
@@ -569,7 +750,10 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({ patientId, onBack 
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditErrors({});
+                  }}
                   className="flex-1 px-6 py-4 bg-gradient-to-r from-gray-400 to-gray-500 hover:from-gray-500 hover:to-gray-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition duration-200 uppercase tracking-wide"
                 >
                   Cancelar

@@ -1,0 +1,189 @@
+% ============================================================
+\section*{Fase 2: Implementación Técnica}
+% ============================================================
+
+\subsection*{Cifrado en Reposo: BCrypt con Salt Aleatorio}
+
+La primera vulnerabilidad identificada en el Sistema IMC fue el uso de BCrypt con parámetros por
+defecto (fuerza~10, $\approx$100~ms por hash) y la existencia de un \textbf{bypass en texto
+plano} para el usuario administrador que omitía completamente la verificación criptográfica. El
+OWASP recomienda un factor de costo que produzca al menos 100--300~ms de cómputo por intento de
+verificación~\cite{owasp2023}.
+
+\textbf{Cambio en \texttt{SecurityConfig.java} (línea~34):}
+
+\begin{lstlisting}[language=Java, caption={Incremento de la fortaleza de BCrypt de 10 a 12}]
+// ANTES: fuerza por defecto (10), ~100 ms por hash
+return new BCryptPasswordEncoder();
+
+// DESPUES: fuerza 12, ~300 ms por hash (recomendacion OWASP 2023)
+// Resistencia 4x mayor contra ataques de GPU
+return new BCryptPasswordEncoder(12);
+\end{lstlisting}
+
+BCrypt incorpora un salt aleatorio de 128 bits en cada operación de hash. El resultado tiene
+la estructura:
+\[
+    \texttt{\$2a\$12\$[22\,chars\,salt][31\,chars\,hash]}
+\]
+El salt queda embebido en el hash resultante, eliminando la necesidad de almacenamiento separado
+y garantizando que dos usuarios con la misma contraseña produzcan hashes completamente
+distintos~\cite{owasp2023}.
+
+\textbf{Cambio en \texttt{AuthService.java} (líneas~52--65):} Se eliminó el bypass de
+autenticación en texto plano que omitía la verificación BCrypt para el administrador por defecto:
+
+\begin{lstlisting}[language=Java, caption={Eliminación del bypass de autenticación en texto plano}]
+// ANTES: comparacion en texto plano (vulnerabilidad critica)
+if (DEFAULT_ADMIN_EMAIL.equals(request.getEmail()) &&
+    DEFAULT_ADMIN_PASSWORD.equals(request.getPassword())) {
+    // ...autenticacion sin BCrypt...
+}
+
+// DESPUES: toda autenticacion pasa por BCrypt sin excepcion
+Authentication authentication = authenticationManager.authenticate(
+    new UsernamePasswordAuthenticationToken(
+        request.getEmail(), request.getPassword()
+    )
+);
+\end{lstlisting}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{bcrypt_config.png}
+    \caption{Configuración de \texttt{BCryptPasswordEncoder(12)} en \texttt{SecurityConfig.java},
+             línea~34.}
+    \label{fig:bcrypt}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{auth_service.png}
+    \caption{Método \texttt{login()} en \texttt{AuthService.java}: autenticación unificada a través
+             de \texttt{AuthenticationManager} sin bypass en texto plano.}
+    \label{fig:authservice}
+\end{figure}
+
+\subsection*{Seguridad en Tránsito: TLS 1.3}
+
+El sistema carecía de configuración TLS; todas las comunicaciones entre el frontend React y el
+backend Spring Boot se realizaban sobre HTTP plano (puerto~8080), exponiendo tokens JWT,
+credenciales y datos biométricos a ataques de intercepción (\textit{man-in-the-middle}). El
+RFC~9325 establece que TLS~1.2 y~1.3 son las únicas versiones aceptables para implementaciones
+modernas, y que TLS~1.3 debe priorizarse por su modelo de seguridad mejorado~\cite{tlsrfc9325}.
+
+Se creó el perfil de producción \texttt{application-prod.yml} con la siguiente configuración:
+
+\begin{lstlisting}[language={}, caption={Configuración TLS 1.3 en \texttt{application-prod.yml}}]
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    enabled-protocols: TLSv1.3,TLSv1.2
+    ciphers:
+      - TLS_AES_256_GCM_SHA384        # TLS 1.3 con AES-256-GCM
+      - TLS_CHACHA20_POLY1305_SHA256   # TLS 1.3, resistente a BEAST/POODLE
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384  # TLS 1.2 con PFS
+    key-store: ${SSL_KEYSTORE_PATH}
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
+    key-store-type: PKCS12
+\end{lstlisting}
+
+Los cipher suites seleccionados garantizan \textit{Perfect Forward Secrecy} (PFS), lo que
+significa que el compromiso futuro de la clave privada del servidor no expone las sesiones
+pasadas. Esto es una propiedad fundamental de TLS~1.3 según el RFC~9325~\cite{tlsrfc9325}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{application_prod.png}
+    \caption{Perfil de producción \texttt{application-prod.yml} con TLS~1.3, cipher suites y
+             configuración de keystore vía variables de entorno.}
+    \label{fig:tls}
+\end{figure}
+
+\subsection*{Gestión de Llaves: Prohibición del Hardcoding}
+
+La ISO/IEC~11770-3:2021 establece que las llaves criptográficas deben generarse, almacenarse y
+destruirse mediante procesos controlados, fuera del código fuente~\cite{isoiec117703}. El sistema
+IMC contenía dos violaciones críticas: el secreto JWT hardcodeado en \texttt{application.yml} y
+las credenciales del administrador embebidas en \texttt{AuthService.java}.
+
+\textbf{Cambio en \texttt{application.yml} (línea~32):}
+
+\begin{lstlisting}[language={}, caption={Migración del secreto JWT a variable de entorno}]
+# ANTES: secreto hardcodeado (visible en repositorio)
+jwt:
+  secret: mySecretKeyForJwtTokenGenerationAndValidationPurposeOnly
+
+# DESPUES: referencia a variable de entorno
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION_MS:86400000}
+\end{lstlisting}
+
+Adicionalmente, se implementó validación de entropía mínima al arrancar la aplicación en
+\texttt{JwtTokenProvider.java}. HMAC-SHA512 requiere una clave de al menos 512~bits para operar
+sin degradación de seguridad~\cite{nistir8413}:
+
+\begin{lstlisting}[language=Java, caption={Validación de entropía del secreto JWT mediante \texttt{@PostConstruct}}]
+private static final int MIN_SECRET_BYTES = 64; // 512 bits
+
+@PostConstruct
+public void validateSecretEntropy() {
+    if (jwtSecret == null || jwtSecret.getBytes().length < MIN_SECRET_BYTES) {
+        throw new IllegalStateException(
+            "JWT_SECRET requiere minimo 64 bytes. " +
+            "Generar con: openssl rand -hex 64"
+        );
+    }
+}
+\end{lstlisting}
+
+\begin{figure}[h]
+    \centering
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{jwt_provider.png}
+        \caption{Validación de entropía mínima del secreto JWT en \texttt{JwtTokenProvider.java}.}
+        \label{fig:jwt}
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{env_example.png}
+        \caption{Archivo \texttt{.env.example}: plantilla de variables de entorno sin secretos
+                 funcionales en el repositorio.}
+        \label{fig:env}
+    \end{minipage}
+\end{figure}
+
+\noindent La jerarquía de almacenamiento de llaves por entorno es la siguiente:
+
+\begin{itemize}
+    \item \textbf{Desarrollo local:} variable de entorno del SO o archivo \texttt{.env} excluido
+          del control de versiones mediante \texttt{.gitignore}.
+    \item \textbf{CI/CD (GitHub Actions):} GitHub Secrets, cifrados en reposo y auditados.
+    \item \textbf{Producción:} AWS Secrets Manager o HashiCorp Vault con rotación automática y
+          acceso controlado por políticas IAM, siguiendo la norma
+          ISO/IEC~11770-3:2021~\cite{isoiec117703}.
+\end{itemize}
+
+\textbf{Cambio en \texttt{authService.ts} (frontend, línea~35):} Se eliminó la persistencia de
+la contraseña en \texttt{localStorage}:
+
+\begin{lstlisting}[language={}, caption={Exclusión del campo \texttt{password} del objeto persistido en \texttt{localStorage} (TypeScript)}]
+// ANTES: contrasena guardada en texto plano en localStorage
+localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
+
+// DESPUES: se omite el campo password antes de persistir
+const { password: _pw, ...safeUser } = user as any;
+localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(safeUser));
+\end{lstlisting}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{auth_service_ts.png}
+    \caption{Destructuring en \texttt{authService.ts}: el campo \texttt{password} se excluye del
+             objeto que se persiste en \texttt{localStorage}.}
+    \label{fig:frontend}
+\end{figure}

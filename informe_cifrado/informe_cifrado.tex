@@ -1,0 +1,67 @@
+%%%%%%%%%%%%PAQUETES%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[a4paper,11pt]{article}
+\usepackage{fancyhdr}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage[left=2.5cm,top=2.5cm,right=2.5cm,bottom=4.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage[utf8]{inputenc}
+\usepackage{enumerate}
+\usepackage{indentfirst}
+\usepackage{lipsum}
+\usepackage{biblatex}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{xcolor}
+
+% Configuración de bibliografía en formato IEEE con DOIs
+\usepackage[style=ieee,url=false,doi=true,isbn=false]{biblatex}
+\addbibresource{references.bib}
+
+% Estilo para fragmentos de código
+\lstdefinestyle{codestyle}{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{green!55!black}\itshape,
+    stringstyle=\color{orange!80!black},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    breaklines=true,
+    frame=single,
+    backgroundcolor=\color{gray!8},
+    rulecolor=\color{gray!40},
+    xleftmargin=1.5em,
+    framexleftmargin=1.5em,
+    captionpos=b
+}
+\lstset{style=codestyle}
+
+%--------------------------------
+%%%%%%%%%%%%%%%%%%%ENCABEZADO%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagestyle{fancy}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[R]{\includegraphics[height=80pt]{logo.jpeg}}
+\lhead{Universidad Nacional de Loja \\ Carrera Computación \\ Facultad de Energía las Industrias y los Recursos Naturales no Renovables}
+\setlength{\headheight}{80pt}
+%%%%%%%%%%%%%%%%%%%%RODAPÉ%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\cfoot{}
+\rfoot{\thepage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%DOCUMENTO%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\input{portada}
+\input{fase1}
+\input{fase2}
+\input{fase3}
+\input{rainbow}
+\input{colision}
+\input{conclusiones}
+
+\printbibliography
+
+\end{document}

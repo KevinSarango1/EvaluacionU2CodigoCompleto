@@ -25,12 +25,18 @@ server:
 logging:
   level:
     root: INFO
-    com.nutricion: DEBUG
-    org.springframework.web: DEBUG
+    com.nutricion: INFO
+    org.springframework.web: WARN
 
 jwt:
-  secret: mySecretKeyForJwtTokenGenerationAndValidationPurposeOnly123456789
-  expiration: 86400000
+  # Mínimo 64 bytes de entropía (512 bits) para HMAC-SHA512
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION_MS:86400000}
+
+app:
+  admin:
+    email: ${ADMIN_EMAIL}
+    password: ${ADMIN_PASSWORD}
 
 springdoc:
   swagger-ui:

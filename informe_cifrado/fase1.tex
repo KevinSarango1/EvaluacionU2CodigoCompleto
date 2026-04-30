@@ -1,0 +1,123 @@
+% ============================================================
+\section*{Fase 1: Investigación y Selección}
+% ============================================================
+
+\subsection*{Análisis de Sensibilidad de Datos}
+
+El Sistema de Gestión Nutricional IMC maneja información clínica y personal de alta sensibilidad.
+Previo a la selección de algoritmos, se realizó una clasificación de los datos según su nivel de
+riesgo, siguiendo las recomendaciones del OWASP Password Storage Cheat Sheet~\cite{owasp2023} y
+las directrices de la ENISA~\cite{enisa2021}:
+
+\begin{center}
+\begin{tabular}{>{\bfseries}p{3.8cm} p{2.2cm} p{3cm} p{4.5cm}}
+\toprule
+\textbf{Dato} & \textbf{Clasificación} & \textbf{Riesgo si se expone} & \textbf{Protección requerida} \\
+\midrule
+Contraseñas de usuarios  & Crítico        & Compromiso total de cuenta      & Hashing adaptativo con salt (BCrypt/Argon2id) \\
+Tokens JWT               & Sensible       & Suplantación de sesión          & Firma HMAC-SHA512, expiración 24~h \\
+Datos biométricos (IMC)  & PII médica     & Violación de privacidad         & Cifrado en reposo, TLS en tránsito \\
+Correo y nombre          & PII            & Phishing dirigido               & TLS~1.3; no persistencia en texto plano \\
+Credenciales de BD       & Infraestructura & Compromiso total del sistema   & Variables de entorno; prohibido hardcoding \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection*{Taxonomía de Algoritmos}
+
+\subsubsection*{Cifrado Simétrico: AES-256 en Modo GCM vs.\ CBC}
+
+El Estándar de Cifrado Avanzado (AES) en su versión de 256 bits es el algoritmo simétrico de
+referencia actual~\cite{fips197upd1}. Sin embargo, el modo de operación determina su nivel de
+seguridad real:
+
+\begin{center}
+\begin{tabular}{p{4.5cm} p{4cm} p{4cm}}
+\toprule
+\textbf{Característica} & \textbf{AES-256-GCM} & \textbf{AES-256-CBC} \\
+\midrule
+Autenticación integrada        & Sí (AEAD)                  & No (requiere HMAC externo)   \\
+Detección de manipulación      & Sí (authentication tag)    & No                           \\
+Paralelización del cifrado     & Sí                         & No                           \\
+Susceptible a padding attacks  & No                         & Sí (POODLE, BEAST)           \\
+Recomendación ENISA 2021       & \checkmark Preferido       & Aceptado con restricciones   \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+AES-256-GCM es un esquema AEAD (\textit{Authenticated Encryption with Associated Data}): garantiza
+simultáneamente confidencialidad, integridad y autenticidad en una sola operación. La ENISA lo
+cataloga como algoritmo de primera categoría para protección de datos a largo plazo~\cite{enisa2021}.
+CBC, sin HMAC adicional, permite ataques de modificación sin detección (\textit{bit-flipping}), lo
+que lo descalifica para implementaciones modernas.
+
+\subsubsection*{Cifrado Asimétrico: RSA-4096 vs.\ Ed25519}
+
+Para firmas digitales y autenticación asimétrica, la ENISA~\cite{enisa2021} recomienda transitar
+hacia criptografía de curva elíptica:
+
+\begin{center}
+\begin{tabular}{p{4.5cm} p{3.8cm} p{3.8cm}}
+\toprule
+\textbf{Característica} & \textbf{RSA-4096} & \textbf{Ed25519 (Curve25519)} \\
+\midrule
+Tamaño de clave (bytes)        & 512                      & 32                          \\
+Velocidad de firma             & $\approx$5 ms            & $\approx$0{,}05 ms          \\
+Resistencia a timing attacks   & Requiere mitigación extra & Intrínseca al diseño        \\
+Nivel de seguridad equivalente & 128 bits                 & 128 bits                    \\
+Recomendación ENISA 2021       & Aceptado (transitorio)   & \checkmark Recomendado      \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Ed25519 forma parte del grupo de algoritmos de firma basados en curvas de Edwards, cuya seguridad
+ha sido formalmente analizada. Su diseño intrínsecamente resistente a ataques de canal lateral
+(\textit{timing side-channel}) y su clave 16 veces más pequeña que RSA-4096 con nivel de seguridad
+equivalente lo posicionan como la elección preferida para nuevas implementaciones, conforme a las
+guías de la ENISA~\cite{enisa2021} y los estándares de gestión de claves
+ISO/IEC~11770-3:2021~\cite{isoiec117703}.
+
+\subsubsection*{Hashing de Contraseñas: Argon2id vs.\ BCrypt vs.\ SHA-256}
+
+Esta es la decisión criptográfica más crítica para la protección de credenciales. Biryukov
+et al.~\cite{argon2rfc2021} especifican Argon2id en el RFC~9106 como la función ganadora del
+Password Hashing Competition (PHC 2015) y el estándar moderno recomendado para este propósito:
+
+\begin{center}
+\begin{tabular}{p{3.8cm} p{3cm} p{3cm} p{2.8cm}}
+\toprule
+\textbf{Característica} & \textbf{Argon2id} & \textbf{BCrypt (fuerza 12)} & \textbf{SHA-256 (solo)} \\
+\midrule
+Salt automático            & Sí (16 bytes)              & Sí (128 bits)             & No              \\
+Resistencia GPU/ASIC       & Alta (\textit{memory-hard}) & Media                    & Ninguna         \\
+Parámetro de tiempo        & Sí (\texttt{iterations})   & Sí (\texttt{cost\_factor}) & No             \\
+Parámetro de memoria       & Sí (\texttt{memory\_cost}) & No                        & No              \\
+Tiempo estimado por hash   & $\approx$500 ms            & $\approx$300 ms           & $<$1 ns         \\
+Recomendación OWASP 2023   & \checkmark Primera opción  & \checkmark Segunda opción & \textbf{Prohibido} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+SHA-256 es un hash de propósito general diseñado para ser \textbf{rápido}: en hardware moderno
+(GPU RTX~4090) puede calcular más de $10^{9}$ hashes por segundo, lo que permite ataques de
+fuerza bruta triviales. Además, al carecer de salt incorporado, es intrínsecamente vulnerable a
+ataques de Rainbow Tables, como señala el OWASP Password Storage Cheat Sheet~\cite{owasp2023}.
+
+\subsection*{Selección y Justificación Técnica}
+
+Basándose en el análisis anterior y las recomendaciones de NIST, ENISA y
+OWASP~\cite{enisa2021,owasp2023,fips197upd1}, la selección para el Sistema IMC es:
+
+\begin{itemize}
+    \item \textbf{Hashing de contraseñas:} BCrypt con \textit{cost factor}~12 (implementado
+          actualmente); Argon2id como objetivo de migración a producción, conforme
+          RFC~9106~\cite{argon2rfc2021}.
+    \item \textbf{Cifrado simétrico / TLS:} AES-256-GCM mediante TLS~1.3, cuyos cipher suites
+          obligatorios (\texttt{TLS\_AES\_256\_GCM\_SHA384}) lo utilizan por defecto, según
+          RFC~9325~\cite{tlsrfc9325}.
+    \item \textbf{Firma de tokens JWT:} HMAC-SHA512 con clave de 512 bits, superando el mínimo de
+          128 bits de seguridad equivalente requerido por NIST~\cite{nistir8413}.
+    \item \textbf{Gestión de llaves:} Variables de entorno del sistema operativo (desarrollo) y
+          servicios como AWS Secrets Manager o HashiCorp Vault (producción), conforme a
+          ISO/IEC~11770-3:2021~\cite{isoiec117703}.
+\end{itemize}

@@ -1,0 +1,41 @@
+% ============================================================
+\subsection*{Resistencia a Ataques de Colisión}
+% ============================================================
+
+Una colisión criptográfica ocurre cuando dos entradas distintas $m_1 \neq m_2$ producen el mismo
+digest: $H(m_1) = H(m_2)$. Para los componentes del sistema IMC se analiza la resistencia de cada
+función utilizada:
+
+\begin{itemize}
+    \item \textbf{BCrypt (basado en Blowfish):} El espacio de salida efectivo para el componente
+          hash es de 192~bits. La probabilidad de colisión por la paradoja del cumpleaños es
+          $2^{-96}$, prácticamente nula. Adicionalmente, BCrypt no está diseñado para integridad
+          de datos sino para autenticación de contraseñas; un ataque de colisión no comprometería
+          directamente la autenticación~\cite{owasp2023}.
+
+    \item \textbf{SHA-512 (base de HMAC-SHA512 para JWT):} Clasificado como resistente a colisiones
+          con seguridad de $2^{256}$~operaciones (paradoja del cumpleaños aplicada sobre una salida
+          de 512~bits), categoría conforme a NIST~FIPS~180-4 y vigente en los criterios del
+          NIST~IR~8413~\cite{nistir8413}.
+\end{itemize}
+
+La comparación cuantitativa de la resistencia a colisiones entre los algoritmos del sistema se
+resume en la siguiente tabla:
+
+\begin{center}
+\begin{tabular}{p{4cm} p{3.5cm} p{3cm} p{3cm}}
+\toprule
+\textbf{Función} & \textbf{Tamaño de salida} & \textbf{Seguridad colisión} & \textbf{Estado} \\
+\midrule
+SHA-256 (sin salt)  & 256 bits  & $2^{128}$ ops & Inseguro para contraseñas \\
+BCrypt (Blowfish)   & 192 bits  & $2^{96}$ ops  & Seguro para autenticación \\
+HMAC-SHA512 (JWT)   & 512 bits  & $2^{256}$ ops & \checkmark Seguro~\cite{nistir8413} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+En conjunto, la implementación criptográfica del sistema IMC es resistente a Rainbow Tables (por
+salt aleatorio de 128~bits), a colisiones (por funciones con seguridad $\geq 2^{96}$), y a fuerza
+bruta en los tokens JWT (por clave de 512~bits). BCrypt-12 constituye la capa más crítica para la
+protección de contraseñas de usuarios, mientras que HMAC-SHA512 garantiza la integridad y
+autenticidad de los tokens de sesión.

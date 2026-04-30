@@ -4,6 +4,7 @@ import com.nutricion.entity.User;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -13,11 +14,24 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret:mySecretKeyForJwtTokenGenerationAndValidationPurposeOnly123456789}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     @Value("${jwt.expiration:86400000}")
     private long jwtExpirationMs;
+
+    // HMAC-SHA512 requiere al menos 64 bytes (512 bits) de clave
+    private static final int MIN_SECRET_BYTES = 64;
+
+    @PostConstruct
+    public void validateSecretEntropy() {
+        if (jwtSecret == null || jwtSecret.getBytes().length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                "JWT_SECRET debe tener al menos " + MIN_SECRET_BYTES +
+                " bytes. Genera uno con: openssl rand -hex 64"
+            );
+        }
+    }
 
     public String generateToken(User user) {
         SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());

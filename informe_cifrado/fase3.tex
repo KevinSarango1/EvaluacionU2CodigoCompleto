@@ -1,0 +1,61 @@
+% ============================================================
+\section*{Fase 3: Validación y Formalización}
+% ============================================================
+
+\subsection*{Cálculo de la Resistencia Criptográfica ($R_c$)}
+
+La métrica de Resistencia Criptográfica se define como:
+
+\begin{equation}
+    R_c = E \cdot K \cdot T_{\text{attack}}
+    \label{eq:rc}
+\end{equation}
+
+donde $E$ es la entropía de la llave o sal utilizada (en bits), $K$ es la complejidad algorítmica
+(número de iteraciones) y $T_{\text{attack}}$ es el tiempo estimado en segundos para calcular un
+único hash en hardware moderno.
+
+\subsubsection*{BCrypt con fuerza 12 (contraseñas en reposo)}
+
+\begin{itemize}
+    \item $E = 128$ bits \quad (salt aleatorio de 128~bits embebido por BCrypt~\cite{owasp2023})
+    \item $K = 2^{12} = 4{,}096$ \quad (iteraciones derivadas del \textit{cost factor}~12)
+    \item $T_{\text{attack}} = 0{,}3$~s \quad (tiempo por hash en CPU Intel Core i7 generación~12)
+\end{itemize}
+
+\begin{equation}
+    R_c^{\text{BCrypt-12}} = 128 \times 4{,}096 \times 0{,}3 \approx \mathbf{157{,}286}
+    \label{eq:rc_bcrypt}
+\end{equation}
+
+Para ilustrar la diferencia con alternativas inseguras:
+
+\begin{equation}
+    R_c^{\text{SHA-256 (sin salt)}} = 0 \times 1 \times 10^{-9} = \mathbf{0}
+    \label{eq:rc_sha}
+\end{equation}
+
+El valor cero en $E$ refleja que sin salt el adversario puede precalcular tablas de búsqueda para
+todos los hashes posibles, reduciendo la resistencia a cero. Un incremento del \textit{cost
+factor} de~10 a~12 cuadruplica el valor de $K$ (de~1{,}024 a~4{,}096), multiplicando
+directamente $R_c$ por cuatro.
+
+\subsubsection*{HMAC-SHA512 con clave de 512 bits (tokens JWT)}
+
+\begin{itemize}
+    \item $E = 512$ bits \quad (clave generada con \texttt{openssl rand -hex 64}~\cite{nistir8413})
+    \item $K = 1$ \quad (una operación HMAC por verificación de token)
+    \item $T_{\text{attack}}$: requiere $2^{512}$ intentos; a $10^{15}$ hashes/s (hardware
+          especializado): $T_{\text{attack}} \approx 2^{512} / 10^{15} \approx 10^{139}$~s
+\end{itemize}
+
+\begin{equation}
+    R_c^{\text{JWT-512}} = 512 \times 1 \times 10^{139} \approx \mathbf{5{,}12 \times 10^{141}}
+    \label{eq:rc_jwt}
+\end{equation}
+
+Este valor es astronómicamente mayor que la edad del universo ($\approx 4 \times 10^{17}$~s),
+confirmando que la clave JWT de 512~bits es computacionalmente inatacable por fuerza bruta.
+Incluso con reducción cuántica mediante el algoritmo de Grover ---que divide la seguridad a la
+mitad en bits--- la seguridad efectiva se reduce a 256~bits, superando el umbral mínimo
+recomendado de 128~bits por el NIST~\cite{nistir8413}.

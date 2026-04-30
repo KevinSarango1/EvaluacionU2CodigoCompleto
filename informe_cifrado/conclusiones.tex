@@ -1,0 +1,36 @@
+% ============================================================
+\section*{Conclusiones}
+% ============================================================
+
+\begin{itemize}
+    \item Cifrar una contraseña no equivale a protegerla: el algoritmo elegido determina la
+          diferencia entre una barrera criptográfica real y una falsa sensación de seguridad.
+          SHA-256, diseñado para ser veloz, se convierte en una herramienta del atacante cuando
+          se aplica al almacenamiento de contraseñas, pues su velocidad extrema ---más de $10^9$
+          hashes por segundo en hardware moderno--- lo hace inútil como mecanismo de protección.
+          En el Sistema IMC, el simple ajuste del \textit{cost factor} de BCrypt de~10 a~12
+          cuadruplicó la resistencia criptográfica ($R_c$) sin cambiar el algoritmo, evidenciando
+          que incluso decisiones paramétricas ---no solo la elección del algoritmo--- determinan
+          si un sistema es realmente seguro o solo aparentemente seguro.
+
+    \item Una implementación criptográfica técnicamente sofisticada puede quedar completamente
+          anulada si el secreto que la sostiene está expuesto en el propio código fuente, visible
+          para cualquier persona con acceso al repositorio. El Sistema IMC cometía exactamente
+          este error: un secreto JWT hardcodeado y credenciales de administrador embebidas en
+          \texttt{AuthService.java} invalidaban cualquier protección que BCrypt pudiera ofrecer,
+          pues un atacante con acceso al código ya no necesitaba romper el cifrado sino simplemente
+          leerlo. Externalizar las llaves a variables de entorno con validación de entropía mínima
+          al arrancar transforma la seguridad criptográfica de una intención en una garantía
+          técnica: si el secreto es débil o inexistente, la aplicación no arranca.
+
+    \item Proteger las contraseñas en la base de datos mientras los tokens de sesión viajan en
+          texto claro sobre HTTP es equivalente a blindar la puerta principal de una casa y dejar
+          abierta la ventana trasera: la protección parcial genera una falsa sensación de seguridad
+          que puede ser más peligrosa que su ausencia total, pues induce confianza donde no la hay.
+          La configuración de TLS~1.3 con cipher suites que garantizan \textit{Perfect Forward
+          Secrecy} cierra este vector de ataque, asegurando que incluso el compromiso futuro de
+          la clave privada del servidor no exponga las sesiones pasadas. El Sistema IMC opera
+          ahora con una arquitectura criptográfica coherente donde las capas de protección ---en
+          reposo, en tránsito y en la gestión de llaves--- se complementan en lugar de
+          contradecirse.
+\end{itemize}

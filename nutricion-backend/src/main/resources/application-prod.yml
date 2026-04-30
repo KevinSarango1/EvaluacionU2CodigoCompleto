@@ -1,0 +1,42 @@
+# Perfil de producción — activar con: --spring.profiles.active=prod
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+server:
+  port: 8443
+  ssl:
+    enabled: true
+    key-store: ${SSL_KEYSTORE_PATH}
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
+    key-store-type: PKCS12
+    key-alias: ${SSL_KEY_ALIAS}
+    # Solo TLS 1.2 y 1.3; deshabilitar versiones antiguas
+    protocol: TLS
+    enabled-protocols: TLSv1.3,TLSv1.2
+    # Cipher suites recomendados por NIST SP 800-52 Rev2
+    ciphers:
+      - TLS_AES_256_GCM_SHA384
+      - TLS_CHACHA20_POLY1305_SHA256
+      - TLS_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+
+logging:
+  level:
+    root: WARN
+    com.nutricion: INFO
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false

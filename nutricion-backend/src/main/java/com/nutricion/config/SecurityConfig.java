@@ -31,7 +31,8 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // Fuerza 12: ~300 ms por hash; resistencia contra GPUs modernas
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean

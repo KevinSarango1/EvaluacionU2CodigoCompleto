@@ -1,0 +1,34 @@
+% ============================================================
+\subsection*{Resistencia a Ataques de Rainbow Tables}
+% ============================================================
+
+Un ataque de Rainbow Table precalcula millones de pares $\text{hash}(p_i) \rightarrow p_i$ para
+un conjunto de contraseñas $\{p_i\}$. Su eficacia depende de que la misma contraseña siempre
+produzca el mismo hash, condición que se cumple únicamente en ausencia de salt.
+
+En el sistema IMC, BCrypt genera un salt aleatorio de 128~bits independiente por cada usuario.
+La probabilidad de que dos usuarios con la misma contraseña $p$ generen el mismo salt es:
+
+\begin{equation}
+    P(\text{colisión de salt}) = \frac{1}{2^{128}} \approx 2{,}94 \times 10^{-39}
+    \label{eq:salt_collision}
+\end{equation}
+
+Para que una Rainbow Table sea efectiva, el atacante necesitaría construir una tabla específica
+para cada salt, con $2^{128}$ entradas posibles. Almacenar $2^{128}$ hashes de 24~bytes
+requeriría $\approx 8{,}5 \times 10^{30}$~gigabytes --- una capacidad de almacenamiento
+imposible con cualquier tecnología actual o proyectada~\cite{owasp2023}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{bcrypt_demo.png}
+    \caption{Demostración en terminal: la misma contraseña \texttt{``admin123''} produce hashes
+             BCrypt completamente distintos en cada llamada, evidenciando la generación de salt
+             aleatorio único.}
+    \label{fig:demo}
+\end{figure}
+
+\noindent En la Figura~\ref{fig:demo} se ejecutó \texttt{passwordEncoder.encode("admin123")} en dos
+ocasiones consecutivas. Los hashes resultantes difieren completamente porque BCrypt deriva un nuevo
+salt de 128~bits en cada invocación, confirmando la imposibilidad práctica de un ataque por
+Rainbow Tables sobre el sistema IMC.

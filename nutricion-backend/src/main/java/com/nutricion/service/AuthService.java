@@ -31,17 +31,20 @@ public class AuthService {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
-    // Default admin user
-    private static final String DEFAULT_ADMIN_EMAIL = "kevin.sarango@unl.edu.ec";
-    private static final String DEFAULT_ADMIN_PASSWORD = "admin123";
+    // Credenciales de admin leídas desde variables de entorno (nunca hardcodeadas)
+    @org.springframework.beans.factory.annotation.Value("${app.admin.email}")
+    private String defaultAdminEmail;
+
+    @org.springframework.beans.factory.annotation.Value("${app.admin.password}")
+    private String defaultAdminPassword;
 
     public void initializeDefaultAdmin() {
-        if (userRepository.findByEmail(DEFAULT_ADMIN_EMAIL).isEmpty()) {
+        if (userRepository.findByEmail(defaultAdminEmail).isEmpty()) {
             User adminUser = User.builder()
-                    .email(DEFAULT_ADMIN_EMAIL)
-                    .password(passwordEncoder.encode(DEFAULT_ADMIN_PASSWORD))
-                    .firstName("Kevin")
-                    .lastName("Sarango")
+                    .email(defaultAdminEmail)
+                    .password(passwordEncoder.encode(defaultAdminPassword))
+                    .firstName("Admin")
+                    .lastName("Sistema")
                     .role("ADMIN")
                     .active(true)
                     .build();
@@ -50,33 +53,7 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        // Check if it's the default admin
-        if (DEFAULT_ADMIN_EMAIL.equals(request.getEmail()) && 
-            DEFAULT_ADMIN_PASSWORD.equals(request.getPassword())) {
-            User user = userRepository.findByEmail(DEFAULT_ADMIN_EMAIL)
-                    .orElseGet(() -> {
-                        User newAdmin = User.builder()
-                                .email(DEFAULT_ADMIN_EMAIL)
-                                .password(passwordEncoder.encode(DEFAULT_ADMIN_PASSWORD))
-                                .firstName("Kevin")
-                                .lastName("Sarango")
-                                .role("ADMIN")
-                                .active(true)
-                                .build();
-                        return userRepository.save(newAdmin);
-                    });
-
-            String token = jwtTokenProvider.generateToken(user);
-            return LoginResponse.builder()
-                    .token(token)
-                    .email(user.getEmail())
-                    .firstName(user.getFirstName())
-                    .lastName(user.getLastName())
-                    .role(user.getRole())
-                    .build();
-        }
-
-        // Try to authenticate other users
+        // Toda autenticación pasa por BCrypt — no existe bypass en texto plano
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),

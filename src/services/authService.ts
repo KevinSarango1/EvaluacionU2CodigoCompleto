@@ -32,21 +32,23 @@ export const authService = {
   login: async (credentials: LoginCredentials): Promise<User | null> => {
     const users = authService.getAllUsers();
     const user = users.find(u => u.email === credentials.email && u.password === credentials.password);
-    
+
     if (user) {
-      localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(user));
+      // Nunca persistir la contraseña en localStorage
+      const { password: _pw, ...safeUser } = user as any;
+      localStorage.setItem(CURRENT_USER_STORAGE_KEY, JSON.stringify(safeUser));
       return user;
     }
 
     // También buscar en pacientes con credenciales
     const patients = JSON.parse(localStorage.getItem('patients') || '[]');
     const patientUser = patients.find((p: any) => p.email === credentials.email && p.password === credentials.password);
-    
+
     if (patientUser) {
       const patientAsUser: User = {
         id: patientUser.id,
         email: patientUser.email,
-        password: patientUser.password,
+        password: '',
         fullName: `${patientUser.firstName} ${patientUser.lastName}`,
         role: 'patient',
         createdAt: new Date().toISOString(),

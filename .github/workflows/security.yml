@@ -1,6 +1,8 @@
 name: Security Scan - NutriApp
 
-# Principio de mínimo privilegio
+on:
+  pull_request:
+
 permissions:
   contents: read
   pull-requests: read
@@ -8,8 +10,11 @@ permissions:
 jobs:
   security:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-      - name: Secret Detection
-        run: echo "Secret scanning would run here"
+
+      - name: Run Gemini Security Analysis
+        uses: google-github-actions/run-gemini-cli@v1
+        with:
+          command: /security:analyze

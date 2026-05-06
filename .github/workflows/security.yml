@@ -15,17 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 🔐 Verificación de secrets
       - name: Test Secrets
         run: echo "Secrets cargados correctamente"
         env:
           TEST1: ${{ secrets.JWT_SECRET }}
           TEST2: ${{ secrets.ADMIN_PASSWORD }}
 
-      - name: Run Gemini Security Analysis
-        uses: google-github-actions/run-gemini-cli@main
-        with:
-          command: /security:analyze
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      # 🔍 Escaneo de secretos (recomendado 🔥)
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2

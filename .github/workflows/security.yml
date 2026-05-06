@@ -15,6 +15,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test Secrets
+        run: echo "Secrets cargados correctamente"
+        env:
+          TEST1: ${{ secrets.JWT_SECRET }}
+          TEST2: ${{ secrets.ADMIN_PASSWORD }}
+
       - name: Run Gemini Security Analysis
         uses: google-github-actions/run-gemini-cli@v1
         with:

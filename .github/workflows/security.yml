@@ -1,6 +1,7 @@
 name: Security Scan - NutriApp
 
 on:
+  push:
   pull_request:
 
 permissions:
@@ -18,3 +19,7 @@ jobs:
         uses: google-github-actions/run-gemini-cli@v1
         with:
           command: /security:analyze
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
